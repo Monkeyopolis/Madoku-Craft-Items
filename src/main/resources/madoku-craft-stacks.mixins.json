@@ -6,6 +6,7 @@
 		"CodecRangeMixin",
 		"InventoryStackLimitMixin",
 		"ItemStackMixin",
+		"ItemEntityPickupMixin",
 		"ItemEntityDespawnMixin",
 		"PlayerInventoryDropMixin"
 	],

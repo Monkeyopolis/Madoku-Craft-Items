@@ -34,6 +34,29 @@ public final class DeathDropTag {
 		return nbt.getBoolean(TAG_KEY, false);
 	}
 
+	public static void clear(ItemStack stack) {
+		if (stack == null || stack.isEmpty()) {
+			return;
+		}
+
+		NbtComponent custom = stack.get(DataComponentTypes.CUSTOM_DATA);
+		if (custom == null || custom.isEmpty()) {
+			return;
+		}
+
+		NbtCompound nbt = custom.copyNbt();
+		if (!nbt.contains(TAG_KEY)) {
+			return;
+		}
+
+		nbt.remove(TAG_KEY);
+		if (nbt.isEmpty()) {
+			stack.remove(DataComponentTypes.CUSTOM_DATA);
+		} else {
+			NbtComponent.set(DataComponentTypes.CUSTOM_DATA, stack, nbt);
+		}
+	}
+
 	public static int getDeathDropDespawnTicks() {
 		int minutes = StackingConfig.getDeathDropDespawnMinutes();
 		long ticks = (long) Math.max(1, minutes) * 60L * 20L;
