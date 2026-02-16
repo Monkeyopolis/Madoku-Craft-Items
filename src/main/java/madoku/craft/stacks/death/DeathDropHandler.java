@@ -14,8 +14,8 @@ import com.mojang.serialization.JsonOps;
 
 import madoku.craft.API.system.MadokuDeathSystem;
 import madoku.craft.API.system.MadokuDeathSystem.PlayerDeathContext;
-import madoku.craft.API.system.MadokuSavingSystem;
-import madoku.craft.API.system.MadokuSavingSystem.MadokuData;
+import madoku.craft.API.system.MadokuDataSystem;
+import madoku.craft.API.system.MadokuDataSystem.MadokuData;
 import madoku.craft.stacks.config.StackingConfig;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -161,7 +161,7 @@ public final class DeathDropHandler {
 			dataServer = server;
 			JsonObject defaults = new JsonObject();
 			defaults.add(KEPT_STACKS_KEY, new JsonObject());
-			data = MadokuSavingSystem.loadForWorld(server, DATA_ID, defaults);
+			data = MadokuDataSystem.loadWorld(server, DATA_ID, defaults);
 			loadFromData(server, data);
 		}
 	}

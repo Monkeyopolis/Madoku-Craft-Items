@@ -3,8 +3,8 @@ package madoku.craft.stacks.config;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import madoku.craft.API.system.JsonFeatureSystem;
-import madoku.craft.API.system.JsonFeatureSystem.ManagedFeature;
+import madoku.craft.API.system.MadokuJSONSystem;
+import madoku.craft.API.system.MadokuJSONSystem.ManagedJSON;
 import madoku.craft.stacks.MadokuCraftStacks;
 
 public final class StackingConfig {
@@ -16,8 +16,10 @@ public final class StackingConfig {
 	private static final String DEATH_DROP_ENABLED_KEY = "deathDropEnabled";
 	private static final String DEATH_DROP_STACK_PERCENT_KEY = "deathDropStackPercent";
 	private static final String DEATH_DROP_DESPAWN_MINUTES_KEY = "deathDropDespawnMinutes";
+	private static final String JSON_FOLDER_ID = "Stacks";
+	private static final String JSON_FILE_ID = "madoku_craft_stacks";
 
-	private static ManagedFeature feature;
+	private static ManagedJSON feature;
 	private static boolean enabled = true;
 	private static int stackLimit = DEFAULT_STACK_LIMIT;
 	private static boolean deathDropEnabled = true;
@@ -35,7 +37,7 @@ public final class StackingConfig {
 		defaults.addProperty(DEATH_DROP_STACK_PERCENT_KEY, 50);
 		defaults.addProperty(DEATH_DROP_DESPAWN_MINUTES_KEY, 15);
 
-		feature = JsonFeatureSystem.loadFeature(MadokuCraftStacks.MOD_ID, defaults);
+		feature = MadokuJSONSystem.load(JSON_FOLDER_ID, JSON_FILE_ID, defaults);
 		JsonObject root = feature.getRoot();
 		enabled = readEnabled(root);
 
