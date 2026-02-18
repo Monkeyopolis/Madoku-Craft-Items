@@ -5,6 +5,7 @@ import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import madoku.craft.API.system.MadokuInfoDebugSystem;
 import madoku.craft.stacks.config.StackingConfig;
 import madoku.craft.stacks.death.DeathDropHandler;
 import madoku.craft.stacks.gamerule.KeepInventoryEnforcer;
@@ -23,8 +24,10 @@ public class MadokuCraftStacks implements ModInitializer {
 		// However, some things (like resources) may still be uninitialized.
 		// Proceed with mild caution.
 
+		MadokuInfoDebugSystem.info(LOGGER, "Stacks.Init", "Starting {} initialization.", MOD_ID);
 		StackingConfig.init();
 		DeathDropHandler.init();
 		KeepInventoryEnforcer.init();
+		MadokuInfoDebugSystem.info(LOGGER, "Stacks.Init", "Initialization complete.");
 	}
 }

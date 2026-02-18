@@ -16,6 +16,8 @@ import madoku.craft.API.system.MadokuDeathSystem;
 import madoku.craft.API.system.MadokuDeathSystem.PlayerDeathContext;
 import madoku.craft.API.system.MadokuDataSystem;
 import madoku.craft.API.system.MadokuDataSystem.MadokuData;
+import madoku.craft.API.system.MadokuInfoDebugSystem;
+import madoku.craft.stacks.MadokuCraftStacks;
 import madoku.craft.stacks.config.StackingConfig;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -28,7 +30,8 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.random.Random;
 
 public final class DeathDropHandler {
-	private static final String DATA_ID = "madoku-craft-stacks-death-drops";
+	private static final String DEBUG_SOURCE = "Stacks.Death";
+	private static final String DATA_ID = "madoku-stacks";
 	private static final String KEPT_STACKS_KEY = "keptStacks";
 	private static final String ENTRY_SLOT_KEY = "slot";
 	private static final String ENTRY_STACK_KEY = "stack";
@@ -43,6 +46,7 @@ public final class DeathDropHandler {
 	public static void init() {
 		MadokuDeathSystem.init();
 		MadokuDeathSystem.registerRespawn(DeathDropHandler::onRespawn);
+		debug("Registered respawn handler.");
 	}
 
 	public static boolean handleDrop(PlayerInventory inventory) {
@@ -70,8 +74,17 @@ public final class DeathDropHandler {
 
 		int dropCount = calculateDropCount(slots.size(), StackingConfig.getDeathDropStackPercent());
 		shuffleSlots(slots, player.getRandom());
+		debug(
+			"Death drop for player {} ({}): stackCount={}, dropPercent={}, dropCount={}.",
+			player.getName().getString(),
+			player.getUuid(),
+			slots.size(),
+			StackingConfig.getDeathDropStackPercent(),
+			dropCount
+		);
 
 		List<KeptStack> kept = new ArrayList<>(slots.size() - dropCount);
+		int droppedCount = 0;
 		for (int i = 0; i < slots.size(); i++) {
 			int slot = slots.get(i);
 			ItemStack stack = inventory.getStack(slot);
@@ -85,6 +98,7 @@ public final class DeathDropHandler {
 				if (dropped != null) {
 					DeathDropTag.mark(dropped.getStack());
 				}
+				droppedCount++;
 			} else {
 				kept.add(new KeptStack(slot, stack.copy()));
 			}
@@ -98,6 +112,13 @@ public final class DeathDropHandler {
 			KEPT_STACKS.put(player.getUuid(), kept);
 		}
 
+		debug(
+			"Death drop result for player {} ({}): dropped={}, kept={}.",
+			player.getName().getString(),
+			player.getUuid(),
+			droppedCount,
+			kept.size()
+		);
 		saveData(server);
 		return true;
 	}
@@ -115,8 +136,17 @@ public final class DeathDropHandler {
 		if (kept == null || kept.isEmpty()) {
 			return;
 		}
+		debug(
+			"Restoring {} kept stacks for player {} ({}).",
+			kept.size(),
+			newPlayer.getName().getString(),
+			newPlayer.getUuid()
+		);
 
 		PlayerInventory inventory = newPlayer.getInventory();
+		int restoredToSlot = 0;
+		int restoredByInsert = 0;
+		int forcedDrops = 0;
 		for (KeptStack entry : kept) {
 			ItemStack stack = entry.stack();
 			if (stack.isEmpty()) {
@@ -128,19 +158,31 @@ public final class DeathDropHandler {
 				ItemStack existing = inventory.getStack(slot);
 				if (existing.isEmpty()) {
 					inventory.setStack(slot, stack);
+					restoredToSlot++;
 					continue;
 				}
 			}
 
-			if (!inventory.insertStack(stack)) {
+			if (inventory.insertStack(stack)) {
+				restoredByInsert++;
+			} else {
 				DeathDropTag.mark(stack);
 				ItemEntity dropped = newPlayer.dropItem(stack, true, false);
 				if (dropped != null) {
 					DeathDropTag.mark(dropped.getStack());
 				}
+				forcedDrops++;
 			}
 		}
 
+		debug(
+			"Respawn restore result for player {} ({}): direct={}, inserted={}, dropped={}.",
+			newPlayer.getName().getString(),
+			newPlayer.getUuid(),
+			restoredToSlot,
+			restoredByInsert,
+			forcedDrops
+		);
 		inventory.markDirty();
 		saveData(server);
 	}
@@ -162,6 +204,7 @@ public final class DeathDropHandler {
 			JsonObject defaults = new JsonObject();
 			defaults.add(KEPT_STACKS_KEY, new JsonObject());
 			data = MadokuDataSystem.loadWorld(server, DATA_ID, defaults);
+			debug("Bound data storage {} for current server.", DATA_ID);
 			loadFromData(server, data);
 		}
 	}
@@ -179,6 +222,8 @@ public final class DeathDropHandler {
 
 		JsonObject keptRoot = root.getAsJsonObject(KEPT_STACKS_KEY);
 		RegistryOps<JsonElement> ops = RegistryOps.of(JsonOps.INSTANCE, server.getRegistryManager());
+		int loadedPlayers = 0;
+		int loadedStacks = 0;
 		for (Map.Entry<String, JsonElement> entry : keptRoot.entrySet()) {
 			UUID playerId;
 			try {
@@ -214,8 +259,11 @@ public final class DeathDropHandler {
 
 			if (!kept.isEmpty()) {
 				KEPT_STACKS.put(playerId, kept);
+				loadedPlayers++;
+				loadedStacks += kept.size();
 			}
 		}
+		debug("Loaded kept stacks from disk: players={}, stacks={}.", loadedPlayers, loadedStacks);
 	}
 
 	private static void saveData(MinecraftServer server) {
@@ -262,6 +310,7 @@ public final class DeathDropHandler {
 
 		root.add(KEPT_STACKS_KEY, keptRoot);
 		data.save();
+		debug("Saved kept stacks to disk: players={}.", keptRoot.size());
 	}
 
 	private static int calculateDropCount(int stackCount, int percent) {
@@ -282,6 +331,10 @@ public final class DeathDropHandler {
 				slots.set(j, tmp);
 			}
 		}
+	}
+
+	private static void debug(String message, Object... args) {
+		MadokuInfoDebugSystem.info(MadokuCraftStacks.LOGGER, DEBUG_SOURCE, message, args);
 	}
 
 	private record KeptStack(int slot, ItemStack stack) {

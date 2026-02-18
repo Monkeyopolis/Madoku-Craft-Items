@@ -3,6 +3,7 @@ package madoku.craft.stacks.config;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import madoku.craft.API.system.MadokuInfoDebugSystem;
 import madoku.craft.API.system.MadokuJSONSystem;
 import madoku.craft.API.system.MadokuJSONSystem.ManagedJSON;
 import madoku.craft.stacks.MadokuCraftStacks;
@@ -83,9 +84,25 @@ public final class StackingConfig {
 
 		if (updated) {
 			feature.save();
+			MadokuInfoDebugSystem.info(
+				MadokuCraftStacks.LOGGER,
+				"Stacks.Config",
+				"Saved normalized config to {}.",
+				feature.getPath()
+			);
 		}
 
 		MadokuCraftStacks.LOGGER.info("Stack limit feature is {}", enabled ? "enabled" : "disabled");
+		MadokuInfoDebugSystem.info(
+			MadokuCraftStacks.LOGGER,
+			"Stacks.Config",
+			"Loaded enabled={}, stackLimit={}, deathDropEnabled={}, deathDropPercent={}, deathDropDespawnMinutes={}.",
+			enabled,
+			stackLimit,
+			deathDropEnabled,
+			deathDropStackPercent,
+			deathDropDespawnMinutes
+		);
 	}
 
 	public static boolean isEnabled() {
