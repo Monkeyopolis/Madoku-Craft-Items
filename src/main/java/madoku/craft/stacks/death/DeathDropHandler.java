@@ -17,6 +17,7 @@ import madoku.craft.API.system.MadokuDeathSystem.PlayerDeathContext;
 import madoku.craft.API.system.MadokuDataSystem;
 import madoku.craft.API.system.MadokuDataSystem.MadokuData;
 import madoku.craft.API.system.MadokuInfoDebugSystem;
+import madoku.craft.API.system.MadokuTickSystem;
 import madoku.craft.stacks.MadokuCraftStacks;
 import madoku.craft.stacks.config.StackingConfig;
 import net.minecraft.entity.ItemEntity;
@@ -132,18 +133,54 @@ public final class DeathDropHandler {
 			return;
 		}
 		ensureData(server);
-		List<KeptStack> kept = KEPT_STACKS.remove(newPlayer.getUuid());
+		UUID playerId = newPlayer.getUuid();
+		List<KeptStack> kept = KEPT_STACKS.get(playerId);
+		if (kept == null || kept.isEmpty()) {
+			return;
+		}
+
+		String playerName = newPlayer.getName().getString();
+		if (!MadokuTickSystem.isInitialized()) {
+			debug(
+				"Tick system not initialized; restoring {} kept stacks immediately for player {} ({}).",
+				kept.size(),
+				playerName,
+				playerId
+			);
+			restoreKeptStacks(server, playerId);
+			return;
+		}
+
+		boolean queued = MadokuTickSystem.enqueue(MadokuTickSystem.Phase.END, tickServer -> restoreKeptStacks(tickServer, playerId));
+		if (queued) {
+			debug("Queued kept stack restore for player {} ({}).", playerName, playerId);
+		} else {
+			debug("Restore queue already contained pending task for player {} ({}). Running immediate fallback.", playerName, playerId);
+			restoreKeptStacks(server, playerId);
+		}
+	}
+
+	private static void restoreKeptStacks(MinecraftServer server, UUID playerId) {
+		if (server == null || playerId == null) {
+			return;
+		}
+		ensureData(server);
+		ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
+		if (player == null) {
+			return;
+		}
+		List<KeptStack> kept = KEPT_STACKS.remove(playerId);
 		if (kept == null || kept.isEmpty()) {
 			return;
 		}
 		debug(
 			"Restoring {} kept stacks for player {} ({}).",
 			kept.size(),
-			newPlayer.getName().getString(),
-			newPlayer.getUuid()
+			player.getName().getString(),
+			player.getUuid()
 		);
 
-		PlayerInventory inventory = newPlayer.getInventory();
+		PlayerInventory inventory = player.getInventory();
 		int restoredToSlot = 0;
 		int restoredByInsert = 0;
 		int forcedDrops = 0;
@@ -167,7 +204,7 @@ public final class DeathDropHandler {
 				restoredByInsert++;
 			} else {
 				DeathDropTag.mark(stack);
-				ItemEntity dropped = newPlayer.dropItem(stack, true, false);
+				ItemEntity dropped = player.dropItem(stack, true, false);
 				if (dropped != null) {
 					DeathDropTag.mark(dropped.getStack());
 				}
@@ -177,8 +214,8 @@ public final class DeathDropHandler {
 
 		debug(
 			"Respawn restore result for player {} ({}): direct={}, inserted={}, dropped={}.",
-			newPlayer.getName().getString(),
-			newPlayer.getUuid(),
+			player.getName().getString(),
+			player.getUuid(),
 			restoredToSlot,
 			restoredByInsert,
 			forcedDrops
@@ -309,7 +346,7 @@ public final class DeathDropHandler {
 		}
 
 		root.add(KEPT_STACKS_KEY, keptRoot);
-		data.save();
+		data.saveQueued();
 		debug("Saved kept stacks to disk: players={}.", keptRoot.size());
 	}
 

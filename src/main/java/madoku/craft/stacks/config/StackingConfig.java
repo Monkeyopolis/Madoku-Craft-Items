@@ -13,7 +13,6 @@ public final class StackingConfig {
 	public static final int MAX_STACK_CAP = 999;
 	private static final String ENABLE_FEATURE_KEY = "enableFeature";
 	private static final String STACK_LIMIT_KEY = "customStackAmount";
-	private static final String LEGACY_STACK_LIMIT_KEY = "maxStackSize";
 	private static final String DEATH_DROP_ENABLED_KEY = "deathDropEnabled";
 	private static final String DEATH_DROP_STACK_PERCENT_KEY = "deathDropStackPercent";
 	private static final String DEATH_DROP_DESPAWN_MINUTES_KEY = "deathDropDespawnMinutes";
@@ -53,11 +52,6 @@ public final class StackingConfig {
 
 		if (stackLimit != configured || !hasNumber(root, STACK_LIMIT_KEY)) {
 			root.addProperty(STACK_LIMIT_KEY, stackLimit);
-			updated = true;
-		}
-
-		if (root != null && root.has(LEGACY_STACK_LIMIT_KEY)) {
-			root.remove(LEGACY_STACK_LIMIT_KEY);
 			updated = true;
 		}
 
@@ -131,10 +125,6 @@ public final class StackingConfig {
 		}
 
 		JsonElement value = root.get(STACK_LIMIT_KEY);
-		if (value == null) {
-			value = root.get(LEGACY_STACK_LIMIT_KEY);
-		}
-
 		if (value != null && value.isJsonPrimitive() && value.getAsJsonPrimitive().isNumber()) {
 			return value.getAsInt();
 		}

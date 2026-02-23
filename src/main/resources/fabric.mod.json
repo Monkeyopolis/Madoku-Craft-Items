@@ -17,9 +17,6 @@
 	"entrypoints": {
 		"main": [
 			"madoku.craft.stacks.MadokuCraftStacks"
-		],
-		"client": [
-			"madoku.craft.stacks.MadokuCraftStacksClient"
 		]
 	},
 	"mixins": [
