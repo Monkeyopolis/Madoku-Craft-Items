@@ -116,6 +116,10 @@ public final class MadokuItemStack {
 		return Math.max(maximum, getMaxStackCap());
 	}
 
+	public static boolean useVanillaComparatorScaling() {
+		return isEnabled() && configuration.vanillaComparatorScaling;
+	}
+
 	public static boolean handleInventoryDrop(Inventory inventory) {
 		if (inventory == null || !isEnabled() || !configuration.deathDropEnabled) {
 			return false;
@@ -297,6 +301,7 @@ public final class MadokuItemStack {
 			.field("stack_limit", configuration.customStackAmount)
 			.field("death_drop_enabled", configuration.deathDropEnabled)
 			.field("death_drop_percent", configuration.deathDropStackPercent)
+			.field("vanilla_comparator_scaling", configuration.vanillaComparatorScaling)
 			.log();
 	}
 

@@ -3,6 +3,7 @@
   "package": "madoku.craft.items.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "AbstractContainerMenuComparatorMixin",
     "AbstractFurnaceFuelDurationMixin",
     "ContainerStackLimitMixin",
     "CraftingMenuRarityMixin",
