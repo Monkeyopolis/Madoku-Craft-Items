@@ -1,18 +1,18 @@
-package madoku.craft.stacks.mixin;
+package madoku.craft.items.mixin;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
-import madoku.craft.stacks.config.StackingConfig;
-import net.minecraft.util.dynamic.Codecs;
+import madoku.craft.items.itemstack.system.MadokuItemStack;
+import net.minecraft.util.ExtraCodecs;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 
-@Mixin(Codecs.class)
-public abstract class CodecRangeMixin {
+@Mixin(ExtraCodecs.class)
+public abstract class ExtraCodecsIntRangeMixin {
 	@Overwrite
-	public static Codec<Integer> rangedInt(int min, int max) {
-		int upper = StackingConfig.isEnabled()
-			? Math.max(max, StackingConfig.MAX_STACK_CAP)
+	public static Codec<Integer> intRange(int min, int max) {
+		int upper = MadokuItemStack.shouldExtendCodecRange(min, max)
+			? MadokuItemStack.getCodecUpperBound(max)
 			: max;
 
 		return Codec.INT.flatXmap(
@@ -33,3 +33,4 @@ public abstract class CodecRangeMixin {
 		);
 	}
 }
+

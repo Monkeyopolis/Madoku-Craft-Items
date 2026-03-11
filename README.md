@@ -1,25 +1,22 @@
-# Madoku Craft Stacks
+## Madoku Craft: Items
 
-Madoku Craft Stacks is an item stacking system that can be tinkered with.
-This is perfect for users that love to customize the game to their needs.
-This can be done through the MOD's config JSON file.
+Madoku Craft: Items is a configurable Item system.
+It allows users to customize Items to their specific needs.
+This system splits Items in different Categories.
+You can add and remove Items from the system.
 
 ## Dependencies
 
-This MOD requires Fabric API and Madoku Craft API in order to function properly.
-Madoku Craft API provides this MOD's the JSON, DATA, death system.
+- Fabric API
+- Madoku Craft API
 
 ## Implementation
 
-This MOD by default increases item stacks to 128.
-The number can be increased up to 999 items per stack.
-This MOD also controls how many items a player drops when they die.
-By default, a player drops 50% of their inventory upon death.
-When the player dies, the items they drop will despawn after 15 minutes instead of five minutes.
-This only affects items dropped by player deaths and can be changed up to 60 minutes.
-
-## Disclaimer
-
-This MOD affects items in player inventories and containers.
-If removed from a world, item loss can be expected since Vanilla Minecraft only allows item stacks of 64.
-Use with caution and make sure to back up your worlds before using this MOD.
+This MOD by default enhanced Golden tools to be better than Iron variants.
+All Tool Items had their stats enhanced as well.
+Fuel Items were also modified, Magma Blocks now count as a Fuel Item.
+You can modify whether an Item can Multi Stack or not.
+You can also modify Items to have properties of other Items, as long as that property belongs to that Item Category.
+For example, you can modify an Axe to have the Spear's attack range.
+This MOD also contains a Rarity system, which applies to all Items in the Tools Category.
+Higher rarity increases a Tool's stats, there's a Rarity Indicator for Tools.
