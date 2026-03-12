@@ -21,12 +21,6 @@ public final class MadokuItemConfig {
 	public static final String FIELD_MATERIAL_LEVEL = "material_level";
 	public static final String FIELD_ARMOR = "armor";
 	public static final String FIELD_ARMOR_TOUGHNESS = "armor_toughness";
-	public static final String FIELD_REACH_MIN = "reach_min";
-	public static final String FIELD_REACH_MAX = "reach_max";
-	public static final String FIELD_REACH_MIN_CREATIVE = "reach_min_creative";
-	public static final String FIELD_REACH_MAX_CREATIVE = "reach_max_creative";
-	public static final String FIELD_REACH_HITBOX_MARGIN = "reach_hitbox_margin";
-	public static final String FIELD_REACH_MOB_FACTOR = "reach_mob_factor";
 
 	public static final int TOOL_INT_UNSET = -1;
 	public static final double TOOL_DOUBLE_UNSET = -1.0d;
@@ -77,22 +71,8 @@ public final class MadokuItemConfig {
 		return defaults;
 	}
 
-	public static Map<String, JsonObject> buildDefaultSpearFileDefaults() {
-		Map<String, JsonObject> defaults = new LinkedHashMap<>();
-		for (Map.Entry<String, JsonObject> entry : buildDefaultSpearItemProfiles().entrySet()) {
-			String fileKey = fileKeyFromItemId(entry.getKey());
-			if (fileKey.isBlank()) {
-				continue;
-			}
-			defaults.put(fileKey, entry.getValue());
-		}
-		return defaults;
-	}
-
 	public static Map<String, JsonObject> buildDefaultToolsCategoryFileDefaults() {
-		Map<String, JsonObject> defaults = new LinkedHashMap<>(buildDefaultToolFileDefaults());
-		defaults.putAll(buildDefaultSpearFileDefaults());
-		return defaults;
+		return buildDefaultToolFileDefaults();
 	}
 
 	public static Map<String, JsonObject> buildDefaultArmorFileDefaults() {
@@ -148,51 +128,6 @@ public final class MadokuItemConfig {
 		defaults.addProperty(FIELD_ATTACK_SPEED, attackSpeed);
 		defaults.addProperty(FIELD_MINING_SPEED, miningSpeed);
 		defaults.addProperty(FIELD_MATERIAL_LEVEL, materialLevel);
-		return defaults;
-	}
-
-	public static JsonObject buildSpearItemDefaults(String itemId) {
-		return buildSpearItemDefaults(
-			itemId,
-			TOOL_INT_UNSET,
-			TOOL_DOUBLE_UNSET,
-			TOOL_DOUBLE_UNSET,
-			TOOL_INT_UNSET,
-			1.0d,
-			4.5d,
-			1.0d,
-			4.5d,
-			0.3d,
-			1.0d,
-			STACK_SINGLE
-		);
-	}
-
-	public static JsonObject buildSpearItemDefaults(
-		String itemId,
-		int durability,
-		double attackDamage,
-		double attackSpeed,
-		int materialLevel,
-		double reachMin,
-		double reachMax,
-		double reachMinCreative,
-		double reachMaxCreative,
-		double reachHitboxMargin,
-		double reachMobFactor,
-		String stackValue
-	) {
-		JsonObject defaults = buildBaseDefaults(itemId, stackValue);
-		defaults.addProperty(FIELD_DURABILITY, durability);
-		defaults.addProperty(FIELD_ATTACK_DAMAGE, attackDamage);
-		defaults.addProperty(FIELD_ATTACK_SPEED, attackSpeed);
-		defaults.addProperty(FIELD_MATERIAL_LEVEL, materialLevel);
-		defaults.addProperty(FIELD_REACH_MIN, reachMin);
-		defaults.addProperty(FIELD_REACH_MAX, reachMax);
-		defaults.addProperty(FIELD_REACH_MIN_CREATIVE, reachMinCreative);
-		defaults.addProperty(FIELD_REACH_MAX_CREATIVE, reachMaxCreative);
-		defaults.addProperty(FIELD_REACH_HITBOX_MARGIN, reachHitboxMargin);
-		defaults.addProperty(FIELD_REACH_MOB_FACTOR, reachMobFactor);
 		return defaults;
 	}
 
@@ -391,36 +326,6 @@ public final class MadokuItemConfig {
 			"minecraft:fishing_rod",
 			buildToolItemDefaults("minecraft:fishing_rod", 64, TOOL_DOUBLE_UNSET, TOOL_DOUBLE_UNSET, TOOL_DOUBLE_UNSET, TOOL_INT_UNSET, STACK_SINGLE)
 		);
-
-		return defaults;
-	}
-
-	public static Map<String, JsonObject> buildDefaultSpearItemProfiles() {
-		Map<String, JsonObject> defaults = new LinkedHashMap<>();
-		String[] materials = {"wooden", "stone", "copper", "iron", "golden", "diamond", "netherite"};
-		int[] durability = {64, 128, 256, 512, 1024, 2048, 4096};
-		int[] materialLevel = {0, 1, 2, 2, 3, 3, 4};
-
-		for (int index = 0; index < materials.length; index++) {
-			String itemId = "minecraft:" + materials[index] + "_spear";
-			defaults.put(
-				itemId,
-				buildSpearItemDefaults(
-					itemId,
-					durability[index],
-					3.0 + index,
-					1.2 + (index * 0.1),
-					materialLevel[index],
-					1.0d,
-					4.5d,
-					1.0d,
-					4.5d,
-					0.3d,
-					1.0d,
-					STACK_SINGLE
-				)
-			);
-		}
 
 		return defaults;
 	}

@@ -19,10 +19,9 @@
     "ResultSlotRarityMixin",
     "SmithingTransformRecipeRarityMixin"
   ],
-  "client": [
-    "client.GuiGraphicsRarityOverlayMixin",
-    "client.GuiGraphicsStackCountMixin"
-  ],
+	  "client": [
+	    "client.GuiGraphicsRarityOverlayMixin"
+	  ],
   "injectors": {
     "defaultRequire": 1
   }

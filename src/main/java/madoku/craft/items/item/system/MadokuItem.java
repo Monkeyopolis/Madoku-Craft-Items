@@ -8,11 +8,10 @@ import madoku.craft.debug.MadokuDebug;
 import madoku.craft.items.itemstack.system.MadokuItemStack;
 import madoku.craft.items.mixin.ItemComponentsAccessor;
 import net.minecraft.core.Holder;
-import net.minecraft.core.HolderSet;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EquipmentSlotGroup;
@@ -21,7 +20,6 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.AttackRange;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.item.component.Tool;
 import net.minecraft.world.level.block.Block;
@@ -39,11 +37,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.StreamSupport;
 
 public final class MadokuItem {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MadokuItem.class);
-	private static final AttackRange DEFAULT_REACH = new AttackRange(0.0F, 3.0F, 0.0F, 5.0F, 0.3F, 1.0F);
 	private static final int MAX_FUEL_TICKS = 201600;
 
 	private static final String ITEM_CONFIG_ROOT_FOLDER_NAME = "madoku-craft-items";
@@ -192,13 +188,13 @@ public final class MadokuItem {
 					null
 				);
 
-				Map<String, JsonObject> normalizedTool = DynamicJsonSystem.ensureManagedFolder(
-					toolDirectory,
-					MadokuItemConfig.buildDefaultToolsCategoryFileDefaults(),
-					MadokuItem::buildDynamicToolDefaultsForFile,
-					MadokuItem::isSupportedToolItemFile,
-					MadokuItem::normalizeToolDynamicEntry
-				);
+					Map<String, JsonObject> normalizedTool = DynamicJsonSystem.ensureManagedFolder(
+						toolDirectory,
+						MadokuItemConfig.buildDefaultToolsCategoryFileDefaults(),
+						MadokuItem::buildDynamicToolDefaultsForFile,
+						MadokuItem::isSupportedToolItemFile,
+						null
+					);
 
 				Map<String, JsonObject> normalizedArmor = DynamicJsonSystem.ensureManagedFolder(
 					armorDirectory,
@@ -348,9 +344,6 @@ public final class MadokuItem {
 		if (itemId == null) {
 			itemId = "minecraft:" + normalizeFileKey(fileKey);
 		}
-		if (isSpearItemId(itemId)) {
-			return MadokuItemConfig.buildSpearItemDefaults(itemId);
-		}
 		return MadokuItemConfig.buildToolItemDefaults(itemId);
 	}
 
@@ -405,15 +398,15 @@ public final class MadokuItem {
 	}
 
 	private static Item resolveItem(String itemId) {
-		Identifier id = Identifier.tryParse(itemId == null ? "" : itemId.trim());
+		ResourceLocation id = ResourceLocation.tryParse(itemId == null ? "" : itemId.trim());
 		if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) {
 			return null;
 		}
-		return BuiltInRegistries.ITEM.getValue(id);
+		return BuiltInRegistries.ITEM.get(id);
 	}
 
 	private static String normalizeItemId(String rawValue) {
-		Identifier id = Identifier.tryParse(rawValue == null ? "" : rawValue.trim());
+		ResourceLocation id = ResourceLocation.tryParse(rawValue == null ? "" : rawValue.trim());
 		if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) {
 			return null;
 		}
@@ -505,26 +498,12 @@ public final class MadokuItem {
 		Double attackSpeed = readOptionalDouble(root, MadokuItemConfig.FIELD_ATTACK_SPEED, MadokuItemConfig.TOOL_DOUBLE_UNSET);
 		Double miningSpeed = readOptionalDouble(root, MadokuItemConfig.FIELD_MINING_SPEED, MadokuItemConfig.TOOL_DOUBLE_UNSET);
 
-		MadokuToolProfile.ReachProfile reach = null;
-		MadokuToolProfile.ReachProfile parsedReach = new MadokuToolProfile.ReachProfile(
-			readOptionalDouble(root, MadokuItemConfig.FIELD_REACH_MIN, MadokuItemConfig.TOOL_DOUBLE_UNSET),
-			readOptionalDouble(root, MadokuItemConfig.FIELD_REACH_MAX, MadokuItemConfig.TOOL_DOUBLE_UNSET),
-			readOptionalDouble(root, MadokuItemConfig.FIELD_REACH_MIN_CREATIVE, MadokuItemConfig.TOOL_DOUBLE_UNSET),
-			readOptionalDouble(root, MadokuItemConfig.FIELD_REACH_MAX_CREATIVE, MadokuItemConfig.TOOL_DOUBLE_UNSET),
-			readOptionalDouble(root, MadokuItemConfig.FIELD_REACH_HITBOX_MARGIN, MadokuItemConfig.TOOL_DOUBLE_UNSET),
-			readOptionalDouble(root, MadokuItemConfig.FIELD_REACH_MOB_FACTOR, MadokuItemConfig.TOOL_DOUBLE_UNSET)
-		);
-		if (parsedReach.hasValues()) {
-			reach = parsedReach;
-		}
-
 		return new MadokuToolProfile(
 			durability,
 			attackDamage,
 			attackSpeed,
 			miningSpeed,
-			materialLevel,
-			reach
+			materialLevel
 		);
 	}
 
@@ -556,28 +535,6 @@ public final class MadokuItem {
 		return stackModesByItem.values().stream().filter(mode -> mode == StackMode.SINGLE).count();
 	}
 
-	private static boolean isSpearItemId(String itemId) {
-		return itemId != null && itemId.endsWith("_spear");
-	}
-
-	private static JsonElement normalizeToolDynamicEntry(String key, JsonElement sourceValue) {
-		if (key == null || sourceValue == null || !sourceValue.isJsonPrimitive()) {
-			return null;
-		}
-		if (!sourceValue.getAsJsonPrimitive().isNumber()) {
-			return null;
-		}
-		return switch (key) {
-			case MadokuItemConfig.FIELD_REACH_MIN,
-				MadokuItemConfig.FIELD_REACH_MAX,
-				MadokuItemConfig.FIELD_REACH_MIN_CREATIVE,
-				MadokuItemConfig.FIELD_REACH_MAX_CREATIVE,
-				MadokuItemConfig.FIELD_REACH_HITBOX_MARGIN,
-				MadokuItemConfig.FIELD_REACH_MOB_FACTOR -> sourceValue.deepCopy();
-			default -> null;
-		};
-	}
-
 	private static Integer readOptionalInt(JsonObject root, String key, int sentinelValue) {
 		int value = readInt(root, key, sentinelValue);
 		return value == sentinelValue ? null : value;
@@ -596,8 +553,7 @@ public final class MadokuItem {
 			|| profile.hasAttackDamage()
 			|| profile.hasAttackSpeed()
 			|| profile.hasMiningSpeed()
-			|| profile.hasMaterialLevel()
-			|| profile.hasReach();
+			|| profile.hasMaterialLevel();
 	}
 
 	private static boolean isConfiguredArmorProfile(MadokuArmorProfile profile) {
@@ -659,13 +615,6 @@ public final class MadokuItem {
 			changed = true;
 		}
 
-		AttackRange attackRange = base.get(DataComponents.ATTACK_RANGE);
-		AttackRange updatedAttackRange = applyReachStats(attackRange, profile);
-		if (updatedAttackRange != null && !Objects.equals(attackRange, updatedAttackRange)) {
-			builder.set(DataComponents.ATTACK_RANGE, updatedAttackRange);
-			changed = true;
-		}
-
 		if (changed) {
 			accessor.madokuCraft$setComponents(builder.build());
 		}
@@ -688,7 +637,7 @@ public final class MadokuItem {
 			if (hasSpeed && isMainHandAttack(entry, Attributes.ATTACK_SPEED)) {
 				continue;
 			}
-			builder.add(entry.attribute(), entry.modifier(), entry.slot(), entry.display());
+			builder.add(entry.attribute(), entry.modifier(), entry.slot());
 		}
 
 		if (hasDamage) {
@@ -771,7 +720,7 @@ public final class MadokuItem {
 				toughnessModifier = entry.modifier();
 				continue;
 			}
-			builder.add(entry.attribute(), entry.modifier(), entry.slot(), entry.display());
+			builder.add(entry.attribute(), entry.modifier(), entry.slot());
 		}
 
 		boolean changed = false;
@@ -823,7 +772,7 @@ public final class MadokuItem {
 			return current;
 		}
 
-		HolderSet<Block> incorrectForDrops = null;
+		TagKey<Block> incorrectForDrops = null;
 		if (hasMaterialLevel) {
 			incorrectForDrops = mapMaterialTier(profile.materialLevel());
 		}
@@ -853,8 +802,7 @@ public final class MadokuItem {
 		return new Tool(
 			updatedRules,
 			current.defaultMiningSpeed(),
-			current.damagePerBlock(),
-			current.canDestroyBlocksInCreative()
+			current.damagePerBlock()
 		);
 	}
 
@@ -869,52 +817,18 @@ public final class MadokuItem {
 		return rule.correctForDrops().isPresent() && !rule.correctForDrops().get();
 	}
 
-	private static HolderSet<Block> mapMaterialTier(Integer materialLevel) {
+	private static TagKey<Block> mapMaterialTier(Integer materialLevel) {
 		if (materialLevel == null) {
 			return null;
 		}
 
-		TagKey<Block> tag = switch (materialLevel) {
+		return switch (materialLevel) {
 			case 0 -> BlockTags.INCORRECT_FOR_WOODEN_TOOL;
 			case 1 -> BlockTags.INCORRECT_FOR_STONE_TOOL;
 			case 2 -> BlockTags.INCORRECT_FOR_IRON_TOOL;
 			case 3 -> BlockTags.INCORRECT_FOR_DIAMOND_TOOL;
 			default -> BlockTags.INCORRECT_FOR_NETHERITE_TOOL;
 		};
-
-		List<Holder<Block>> holders;
-		try {
-			holders = StreamSupport.stream(BuiltInRegistries.BLOCK.getTagOrEmpty(tag).spliterator(), false)
-				.toList();
-		} catch (IllegalStateException exception) {
-			// Tags can be unavailable during early bootstrap; skip until server start reapplies profiles.
-			return null;
-		}
-		if (holders.isEmpty()) {
-			return null;
-		}
-		return HolderSet.direct(holders);
-	}
-
-	private static AttackRange applyReachStats(AttackRange current, MadokuToolProfile profile) {
-		if (!profile.hasReach()) {
-			return current;
-		}
-
-		AttackRange baseline = current != null ? current : DEFAULT_REACH;
-		MadokuToolProfile.ReachProfile reach = profile.reach();
-		return new AttackRange(
-			valueOrDefault(reach.minRange(), baseline.minRange()),
-			valueOrDefault(reach.maxRange(), baseline.maxRange()),
-			valueOrDefault(reach.minCreativeRange(), baseline.minCreativeRange()),
-			valueOrDefault(reach.maxCreativeRange(), baseline.maxCreativeRange()),
-			valueOrDefault(reach.hitboxMargin(), baseline.hitboxMargin()),
-			valueOrDefault(reach.mobFactor(), baseline.mobFactor())
-		);
-	}
-
-	private static float valueOrDefault(Double value, float fallback) {
-		return value != null ? value.floatValue() : fallback;
 	}
 
 	private static int clampFuelTicks(int configured) {

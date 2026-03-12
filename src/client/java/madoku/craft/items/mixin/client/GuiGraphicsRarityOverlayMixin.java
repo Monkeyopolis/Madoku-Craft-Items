@@ -5,12 +5,11 @@ import madoku.craft.items.rarity.MadokuRarity;
 import madoku.craft.items.rarity.MadokuRarityTier;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(GuiGraphics.class)
@@ -24,19 +23,20 @@ public abstract class GuiGraphicsRarityOverlayMixin {
 	private static final int DURABILITY_BAR_BG_HEIGHT = 2;
 	private static final int DURABILITY_BAR_FILL_HEIGHT = 1;
 	private static final int DURABILITY_BAR_BG_COLOR = 0xFF000000;
+	private static final float OVERLAY_Z_OFFSET = 200.0F;
 
-	@Shadow
-	public abstract void drawString(Font font, String text, int x, int y, int color, boolean shadow);
-
-	@Inject(
-		method = "renderItemBar(Lnet/minecraft/world/item/ItemStack;II)V",
-		at = @At("HEAD"),
-		cancellable = true
+	@Redirect(
+		method = "renderItemDecorations(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;IILjava/lang/String;)V",
+		at = @At(
+			value = "INVOKE",
+			target = "Lnet/minecraft/world/item/ItemStack;isBarVisible()Z"
+		)
 	)
-	private void madokuCraft$hideVanillaBottomDurabilityBar(ItemStack stack, int x, int y, CallbackInfo ci) {
+	private boolean madokuCraft$disableVanillaBarForManagedRarityItems(ItemStack stack) {
 		if (!stack.isEmpty() && MadokuItem.isRarityCategoryItem(stack)) {
-			ci.cancel();
+			return false;
 		}
+		return stack.isBarVisible();
 	}
 
 	@Inject(
@@ -58,34 +58,37 @@ public abstract class GuiGraphicsRarityOverlayMixin {
 		boolean managedRarityItem = MadokuItem.isRarityCategoryItem(stack);
 		GuiGraphics context = (GuiGraphics) (Object) this;
 
-		if (managedRarityItem && stack.isBarVisible()) {
-			drawTopDurabilityBar(context, stack, x, y);
-		}
+		context.pose().pushPose();
+		context.pose().translate(0.0F, 0.0F, OVERLAY_Z_OFFSET);
+		try {
+			if (managedRarityItem && stack.isBarVisible()) {
+				drawTopDurabilityBar(context, stack, x, y);
+			}
 
-		if (!MadokuRarity.isEnabled()) {
-			return;
-		}
-		if (!managedRarityItem) {
-			return;
-		}
-		if (stackCountText != null || stack.getCount() > 1) {
-			return;
-		}
+			if (!MadokuRarity.isEnabled() || !managedRarityItem) {
+				return;
+			}
+			if (stackCountText != null || stack.getCount() > 1) {
+				return;
+			}
 
-		MadokuRarityTier rarity = MadokuRarity.detectAppliedRarity(stack);
-		if (rarity == null) {
-			rarity = MadokuRarityTier.COMMON;
+			MadokuRarityTier rarity = MadokuRarity.detectAppliedRarity(stack);
+			if (rarity == null) {
+				rarity = MadokuRarityTier.COMMON;
+			}
+
+			String indicator = rarity.inventoryIndicator();
+			int indicatorWidth = textRenderer.width(indicator);
+			int indicatorHeight = textRenderer.lineHeight;
+			int textX = x + 17 - indicatorWidth + INDICATOR_X_OFFSET;
+			int textY = y + 16 - indicatorHeight + INDICATOR_Y_OFFSET;
+			Integer colorValue = rarity.color().getColor();
+			int textColor = (colorValue != null ? colorValue : 0xFFFFFF) | 0xFF000000;
+
+			context.drawString(textRenderer, indicator, textX, textY, textColor, true);
+		} finally {
+			context.pose().popPose();
 		}
-
-		String indicator = rarity.inventoryIndicator();
-		int indicatorWidth = textRenderer.width(indicator);
-		int indicatorHeight = textRenderer.lineHeight;
-		int textX = x + 17 - indicatorWidth + INDICATOR_X_OFFSET;
-		int textY = y + 16 - indicatorHeight + INDICATOR_Y_OFFSET;
-		Integer colorValue = rarity.color().getColor();
-		int textColor = (colorValue != null ? colorValue : 0xFFFFFF) | 0xFF000000;
-
-		this.drawString(textRenderer, indicator, textX, textY, textColor, true);
 	}
 
 	private static void drawTopDurabilityBar(GuiGraphics context, ItemStack stack, int x, int y) {
@@ -94,8 +97,8 @@ public abstract class GuiGraphicsRarityOverlayMixin {
 		int fillWidth = stack.getBarWidth();
 		int fillColor = stack.getBarColor() | 0xFF000000;
 
-		context.fill(RenderPipelines.GUI, barX, barY, barX + DURABILITY_BAR_MAX_WIDTH, barY + DURABILITY_BAR_BG_HEIGHT, DURABILITY_BAR_BG_COLOR);
-		context.fill(RenderPipelines.GUI, barX, barY, barX + fillWidth, barY + DURABILITY_BAR_FILL_HEIGHT, fillColor);
+		context.fill(barX, barY, barX + DURABILITY_BAR_MAX_WIDTH, barY + DURABILITY_BAR_BG_HEIGHT, DURABILITY_BAR_BG_COLOR);
+		context.fill(barX, barY, barX + fillWidth, barY + DURABILITY_BAR_FILL_HEIGHT, fillColor);
 	}
 
 }
