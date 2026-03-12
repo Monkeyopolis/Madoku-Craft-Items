@@ -2,7 +2,7 @@
 
 Madoku Craft: Items is a configurable Item system.
 It allows users to customize Items to their specific needs.
-This system splits Items in different Categories.
+This system splits Items into different Categories.
 You can add and remove Items from the system.
 
 ## Dependencies

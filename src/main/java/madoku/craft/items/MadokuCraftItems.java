@@ -1,6 +1,5 @@
 package madoku.craft.items;
 
-import madoku.craft.clock.MadokuGameplayClock;
 import madoku.craft.config.StaticJsonSystem;
 import madoku.craft.debug.MadokuDebug;
 import madoku.craft.items.item.system.MadokuItem;
@@ -24,7 +23,6 @@ public class MadokuCraftItems implements ModInitializer {
 		MadokuItemStack.initialize();
 		MadokuRarity.initialize();
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-			MadokuGameplayClock.reset();
 			MadokuItemStack.reset();
 			MadokuItemStack.loadPersistedData(server);
 			MadokuItem.onServerStarted();
@@ -32,10 +30,8 @@ public class MadokuCraftItems implements ModInitializer {
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
 			MadokuItemStack.savePersistedData(server);
 			MadokuItemStack.reset();
-			MadokuGameplayClock.reset();
 		});
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
-			MadokuGameplayClock.tick();
 			MadokuItemStack.autosavePersistedData(server);
 		});
 		LOGGER.info("Initialized {} item, stack, and rarity systems", MOD_ID);
