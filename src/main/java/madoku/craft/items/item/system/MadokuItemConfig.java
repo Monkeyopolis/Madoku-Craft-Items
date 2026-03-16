@@ -280,17 +280,18 @@ public final class MadokuItemConfig {
 	public static Map<String, JsonObject> buildDefaultToolItemProfiles() {
 		Map<String, JsonObject> defaults = new LinkedHashMap<>();
 
-		String[] materials = {"wooden", "stone", "copper", "iron", "golden", "diamond", "netherite"};
-		int[] durability = {64, 128, 256, 512, 1024, 2048, 4096};
-		int[] materialLevel = {0, 1, 2, 2, 3, 3, 4};
-		double[] pickAndShovelDamage = {1.0, 2.0, 3.0, 3.0, 4.0, 4.0, 5.0};
+		String[] materials = {"wooden", "stone", "iron", "golden", "diamond", "netherite"};
+		int[] durability = {32, 64, 256, 512, 2048, 4096};
+		int[] materialLevel = {0, 1, 2, 3, 3, 4};
+		int[] materialProgress = {0, 1, 3, 4, 5, 6};
+		double[] pickAndShovelDamage = {1.0, 1.5, 2.5, 3.0, 3.5, 4.0};
 
 		for (int index = 0; index < materials.length; index++) {
 			String prefix = "minecraft:" + materials[index] + "_";
 			int itemDurability = durability[index];
 			int itemLevel = materialLevel[index];
-			double attackStep = index;
-			double miningSpeed = 2.0 + (index * 2.0);
+			double attackStep = materialProgress[index];
+			double miningSpeed = 2.0 + (materialProgress[index] * 2.0);
 
 			defaults.put(
 				prefix + "sword",
@@ -332,10 +333,10 @@ public final class MadokuItemConfig {
 
 	public static Map<String, JsonObject> buildDefaultArmorItemProfiles() {
 		Map<String, JsonObject> defaults = new LinkedHashMap<>();
-		String[] materials = {"leather", "copper", "iron", "golden", "diamond", "netherite"};
-		int[] durability = {192, 256, 384, 512, 768, 1024};
-		double[] armor = {1.0, 2.0, 3.0, 3.0, 4.0, 5.0};
-		double[] toughness = {0.0, 1.0, 1.0, 2.0, 2.0, 3.0};
+		String[] materials = {"leather", "iron", "golden", "diamond", "netherite"};
+		int[] durability = {128, 384, 512, 768, 1024};
+		double[] armor = {1.0, 3.0, 4.0, 5.0, 6.0};
+		double[] toughness = {0.5, 1.5, 2.0, 2.5, 3.0};
 		String[] pieces = {"helmet", "chestplate", "leggings", "boots"};
 
 		for (int materialIndex = 0; materialIndex < materials.length; materialIndex++) {
@@ -366,3 +367,4 @@ public final class MadokuItemConfig {
 		return defaults;
 	}
 }
+

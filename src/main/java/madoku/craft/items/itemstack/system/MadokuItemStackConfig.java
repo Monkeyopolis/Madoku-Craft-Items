@@ -13,14 +13,12 @@ public final class MadokuItemStackConfig {
 	public int customStackAmount = DEFAULT_STACK_LIMIT;
 	public boolean deathDropEnabled = true;
 	public int deathDropStackPercent = DEFAULT_DEATH_DROP_PERCENT;
-	public boolean vanillaComparatorScaling = true;
 
 	public void resetToDefaults() {
 		enableFeature = true;
 		customStackAmount = DEFAULT_STACK_LIMIT;
 		deathDropEnabled = true;
 		deathDropStackPercent = DEFAULT_DEATH_DROP_PERCENT;
-		vanillaComparatorScaling = true;
 	}
 
 	public boolean updateItemStack(JsonObject root) {
@@ -29,12 +27,10 @@ public final class MadokuItemStackConfig {
 		customStackAmount = clampStackAmount(readInteger(root, "customStackAmount", customStackAmount));
 		deathDropEnabled = readBoolean(root, "deathDropEnabled", deathDropEnabled);
 		deathDropStackPercent = clampPercent(readInteger(root, "deathDropStackPercent", deathDropStackPercent));
-		vanillaComparatorScaling = readBoolean(root, "vanillaComparatorScaling", vanillaComparatorScaling);
 		changed |= setBoolean(root, "enableFeature", enableFeature);
 		changed |= setInteger(root, "customStackAmount", customStackAmount);
 		changed |= setBoolean(root, "deathDropEnabled", deathDropEnabled);
 		changed |= setInteger(root, "deathDropStackPercent", deathDropStackPercent);
-		changed |= setBoolean(root, "vanillaComparatorScaling", vanillaComparatorScaling);
 		return changed;
 	}
 
@@ -44,7 +40,6 @@ public final class MadokuItemStackConfig {
 		defaults.addProperty("customStackAmount", DEFAULT_STACK_LIMIT);
 		defaults.addProperty("deathDropEnabled", true);
 		defaults.addProperty("deathDropStackPercent", DEFAULT_DEATH_DROP_PERCENT);
-		defaults.addProperty("vanillaComparatorScaling", true);
 		return defaults;
 	}
 

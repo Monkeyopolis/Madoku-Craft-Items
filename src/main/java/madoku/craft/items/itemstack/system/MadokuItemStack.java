@@ -5,7 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JsonOps;
-import madoku.craft.clock.MadokuGameplayClock;
+import madoku.craft.clock.MadokuClock;
 import madoku.craft.config.StaticJsonSystem;
 import madoku.craft.data.MadokuData;
 import madoku.craft.debug.MadokuDebug;
@@ -63,14 +63,14 @@ public final class MadokuItemStack {
 		MadokuData.createWorldData(server, DATA_FOLDER_NAME, DATA_FILE_NAME, createDefaultData());
 		JsonObject data = MadokuData.loadWorldData(server, DATA_FOLDER_NAME, DATA_FILE_NAME);
 		applyPersistedData(server, data);
-		lastAutosaveBucket = Math.floorDiv(MadokuGameplayClock.getTicks(), AUTOSAVE_INTERVAL_TICKS);
+		lastAutosaveBucket = Math.floorDiv(MadokuClock.getGameplayTicks(), AUTOSAVE_INTERVAL_TICKS);
 	}
 
 	public static void autosavePersistedData(MinecraftServer server) {
 		if (server == null) {
 			return;
 		}
-		long bucket = Math.floorDiv(MadokuGameplayClock.getTicks(), AUTOSAVE_INTERVAL_TICKS);
+		long bucket = Math.floorDiv(MadokuClock.getGameplayTicks(), AUTOSAVE_INTERVAL_TICKS);
 		if (bucket != lastAutosaveBucket) {
 			lastAutosaveBucket = bucket;
 			savePersistedData(server);
@@ -114,10 +114,6 @@ public final class MadokuItemStack {
 			return maximum;
 		}
 		return Math.max(maximum, getMaxStackCap());
-	}
-
-	public static boolean useVanillaComparatorScaling() {
-		return isEnabled() && configuration.vanillaComparatorScaling;
 	}
 
 	public static boolean handleInventoryDrop(Inventory inventory) {
@@ -301,7 +297,6 @@ public final class MadokuItemStack {
 			.field("stack_limit", configuration.customStackAmount)
 			.field("death_drop_enabled", configuration.deathDropEnabled)
 			.field("death_drop_percent", configuration.deathDropStackPercent)
-			.field("vanilla_comparator_scaling", configuration.vanillaComparatorScaling)
 			.log();
 	}
 
