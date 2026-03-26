@@ -9,6 +9,7 @@
     "ExtraCodecsIntRangeMixin",
     "FuelValuesMixin",
     "InventoryMenuRarityMixin",
+    "ItemBuiltInRegistryHolderAccessor",
     "ItemComponentsAccessor",
     "ItemInputRarityMixin",
     "ItemStackDurabilityLoreMixin",

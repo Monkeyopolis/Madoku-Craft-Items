@@ -3,7 +3,7 @@
 	"id": "madoku-craft-items",
 	"version": "${version}",
 	"name": "Madoku Craft: Items",
-	"description": "Core module for upcoming Madoku Craft item features.",
+	"description": "A configurable Item overhaul system.",
 	"authors": [
 		"Me!"
 	],
@@ -24,8 +24,8 @@
 	],
 	"depends": {
 		"fabricloader": ">=0.18.4",
-		"minecraft": "~1.21.11",
-		"java": ">=21",
+		"minecraft": "~${minecraft_version}",
+		"java": ">=25",
 		"fabric-api": "*",
 		"madoku-craft-api": ">=${madoku_craft_api_mod_version}"
 	}

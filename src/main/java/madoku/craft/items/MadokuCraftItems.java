@@ -20,8 +20,8 @@ public class MadokuCraftItems implements ModInitializer {
 		StaticJsonSystem.initialize();
 		MadokuDebug.initialize();
 		MadokuItem.initialize();
-		MadokuItemStack.initialize();
 		MadokuRarity.initialize();
+		MadokuItemStack.initialize();
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			MadokuItemStack.reset();
 			MadokuItemStack.loadPersistedData(server);
