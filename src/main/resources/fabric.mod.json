@@ -3,7 +3,7 @@
 	"id": "madoku-craft-items",
 	"version": "${version}",
 	"name": "Madoku Craft: Items",
-	"description": "A configurable, category-driven item system.",
+	"description": "A configurable Item overhaul system.",
 	"authors": [
 		"Monkeyopolis!"
 	],

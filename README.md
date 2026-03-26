@@ -12,9 +12,11 @@ You can add and remove Items from the system.
 
 ## Implementation
 
-This MOD uses the same category-driven item model as the main Madoku Craft item system.
-Items can be classified as fuel, misc, farming, tool, or armor.
-Tool and armor items can inherit properties from their category defaults, while fuel and misc items can override stack behavior.
-Secondary categories are supported for cross-system tagging such as farming and composter rules.
-This MOD also contains a Rarity system, which applies to tool and armor items.
-Higher rarity increases an item's stats, and tools get a rarity indicator in the UI.
+This MOD by default enhanced Golden tools to be better than Iron variants.
+All Tool Items had their stats enhanced as well.
+Fuel Items were also modified, Magma Blocks now count as a Fuel Item.
+You can modify whether an Item can Multi Stack or not.
+You can also modify Items to have properties of other Items, as long as that property belongs to that Item Category.
+For example, you can modify an Axe to have the Spear's attack range.
+This MOD also contains a Rarity system, which applies to all Items in the Tools Category.
+Higher rarity increases a Tool's stats, there's a Rarity Indicator for Tools.
