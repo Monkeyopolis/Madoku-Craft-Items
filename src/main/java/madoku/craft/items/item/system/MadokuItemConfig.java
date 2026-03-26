@@ -1,17 +1,27 @@
 package madoku.craft.items.item.system;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public final class MadokuItemConfig {
 	public static final String FIELD_ITEM_SYSTEM_ENABLED = "itemSystemEnabled";
 	public static final String FIELD_ITEM_ID = "item_id";
+	public static final String FIELD_PRIMARY_CATEGORY = "primary_category";
+	public static final String FIELD_SECONDARY_CATEGORIES = "secondary_categories";
 	public static final String FIELD_STACK = "stack";
 	public static final String STACK_SINGLE = "single";
 	public static final String STACK_MULTI = "multi";
+
+	public static final String PRIMARY_CATEGORY_FUEL = "fuel";
+	public static final String PRIMARY_CATEGORY_MISC = "misc";
+	public static final String PRIMARY_CATEGORY_TOOL = "tool";
+	public static final String PRIMARY_CATEGORY_ARMOR = "armor";
 
 	public static final String FIELD_FUEL_TICKS = "fuel_ticks";
 	public static final String FIELD_DURABILITY = "durability";
@@ -112,13 +122,13 @@ public final class MadokuItemConfig {
 	}
 
 	public static JsonObject buildFuelItemDefaults(String itemId, double fuelTicks, String stackValue) {
-		JsonObject defaults = buildBaseDefaults(itemId, stackValue);
+		JsonObject defaults = buildBaseDefaults(itemId, stackValue, PRIMARY_CATEGORY_FUEL);
 		defaults.addProperty(FIELD_FUEL_TICKS, fuelTicks);
 		return defaults;
 	}
 
 	public static JsonObject buildMiscItemDefaults(String itemId, String stackValue) {
-		return buildBaseDefaults(itemId, stackValue);
+		return buildBaseDefaults(itemId, stackValue, PRIMARY_CATEGORY_MISC);
 	}
 
 	public static JsonObject buildToolItemDefaults(String itemId) {
@@ -142,7 +152,7 @@ public final class MadokuItemConfig {
 		int materialLevel,
 		String stackValue
 	) {
-		JsonObject defaults = buildBaseDefaults(itemId, stackValue);
+		JsonObject defaults = buildBaseDefaults(itemId, stackValue, PRIMARY_CATEGORY_TOOL);
 		defaults.addProperty(FIELD_DURABILITY, durability);
 		defaults.addProperty(FIELD_ATTACK_DAMAGE, attackDamage);
 		defaults.addProperty(FIELD_ATTACK_SPEED, attackSpeed);
@@ -182,7 +192,7 @@ public final class MadokuItemConfig {
 		double reachMobFactor,
 		String stackValue
 	) {
-		JsonObject defaults = buildBaseDefaults(itemId, stackValue);
+		JsonObject defaults = buildBaseDefaults(itemId, stackValue, PRIMARY_CATEGORY_TOOL);
 		defaults.addProperty(FIELD_DURABILITY, durability);
 		defaults.addProperty(FIELD_ATTACK_DAMAGE, attackDamage);
 		defaults.addProperty(FIELD_ATTACK_SPEED, attackSpeed);
@@ -213,16 +223,27 @@ public final class MadokuItemConfig {
 		double armorToughness,
 		String stackValue
 	) {
-		JsonObject defaults = buildBaseDefaults(itemId, stackValue);
+		JsonObject defaults = buildBaseDefaults(itemId, stackValue, PRIMARY_CATEGORY_ARMOR);
 		defaults.addProperty(FIELD_DURABILITY, durability);
 		defaults.addProperty(FIELD_ARMOR, armor);
 		defaults.addProperty(FIELD_ARMOR_TOUGHNESS, armorToughness);
 		return defaults;
 	}
 
-	private static JsonObject buildBaseDefaults(String itemId, String stackValue) {
+	public static JsonObject buildBaseDefaults(String itemId, String stackValue, String primaryCategory) {
+		return buildBaseDefaults(itemId, stackValue, primaryCategory, new String[0]);
+	}
+
+	public static JsonObject buildBaseDefaults(
+		String itemId,
+		String stackValue,
+		String primaryCategory,
+		String... secondaryCategories
+	) {
 		JsonObject defaults = new JsonObject();
 		defaults.addProperty(FIELD_ITEM_ID, itemId == null ? "" : itemId);
+		defaults.addProperty(FIELD_PRIMARY_CATEGORY, normalizeCategoryValue(primaryCategory));
+		defaults.add(FIELD_SECONDARY_CATEGORIES, buildSecondaryCategoriesArray(primaryCategory, secondaryCategories));
 		defaults.addProperty(FIELD_STACK, normalizeStackValue(stackValue));
 		return defaults;
 	}
@@ -243,6 +264,34 @@ public final class MadokuItemConfig {
 			return STACK_SINGLE;
 		}
 		return STACK_MULTI;
+	}
+
+	public static String normalizeCategoryValue(String rawCategoryValue) {
+		String normalized = rawCategoryValue == null ? "" : rawCategoryValue.trim().toLowerCase(Locale.ROOT);
+		return normalized.isEmpty() ? PRIMARY_CATEGORY_MISC : normalized;
+	}
+
+	private static JsonArray buildSecondaryCategoriesArray(String primaryCategory, String... secondaryCategories) {
+		JsonArray categories = new JsonArray();
+		if (secondaryCategories == null || secondaryCategories.length == 0) {
+			return categories;
+		}
+
+		String normalizedPrimaryCategory = normalizeCategoryValue(primaryCategory);
+		Set<String> normalizedCategories = new LinkedHashSet<>();
+		for (String secondaryCategory : secondaryCategories) {
+			String normalizedCategory = normalizeCategoryValue(secondaryCategory);
+			if (normalizedCategory.isEmpty() || normalizedCategory.equals(normalizedPrimaryCategory)) {
+				continue;
+			}
+			normalizedCategories.add(normalizedCategory);
+		}
+
+		for (String secondaryCategory : normalizedCategories) {
+			categories.add(secondaryCategory);
+		}
+
+		return categories;
 	}
 
 	private static String fileKeyFromItemId(String itemId) {
@@ -455,9 +504,11 @@ public final class MadokuItemConfig {
 
 	public static Map<String, Boolean> buildDefaultMiscItems() {
 		Map<String, Boolean> defaults = new LinkedHashMap<>();
+		defaults.put("minecraft:bone_meal", true);
 		defaults.put("minecraft:water_bucket", true);
 		defaults.put("minecraft:milk_bucket", true);
 		defaults.put("minecraft:powder_snow_bucket", true);
 		return defaults;
 	}
+
 }
