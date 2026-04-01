@@ -129,7 +129,7 @@ public final class MadokuItem {
 		if (!enabled || item == null) {
 			return false;
 		}
-		return toolCategoryItems.contains(item);
+		return toolCategoryItems.contains(item) || hasSecondaryCategory(item, MadokuItemConfig.PRIMARY_CATEGORY_TOOL);
 	}
 
 	public static boolean isToolCategoryItem(ItemStack stack) {
@@ -143,7 +143,7 @@ public final class MadokuItem {
 		if (!enabled || item == null) {
 			return false;
 		}
-		return armorCategoryItems.contains(item);
+		return armorCategoryItems.contains(item) || hasSecondaryCategory(item, MadokuItemConfig.PRIMARY_CATEGORY_ARMOR);
 	}
 
 	public static boolean isArmorCategoryItem(ItemStack stack) {
