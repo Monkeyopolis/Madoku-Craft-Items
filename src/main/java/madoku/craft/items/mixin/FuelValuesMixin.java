@@ -16,6 +16,8 @@ public abstract class FuelValuesMixin {
 			return;
 		}
 
-		cir.setReturnValue(MadokuItem.isConfiguredFuel(stack));
+		if (MadokuItem.isConfiguredFuel(stack)) {
+			cir.setReturnValue(true);
+		}
 	}
 }

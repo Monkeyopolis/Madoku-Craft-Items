@@ -389,8 +389,6 @@ public final class MadokuItem {
 			secondaryCategoriesByItem = Map.copyOf(resolvedSecondaryCategories);
 			toolCategoryItems = Set.copyOf(resolvedToolCategoryItems);
 			armorCategoryItems = Set.copyOf(resolvedArmorCategoryItems);
-			applyToolProfiles(toolProfilesByItem);
-			applyArmorProfiles(armorProfilesByItem);
 		}
 
 	private static JsonObject buildDynamicFuelDefaultsForFile(String fileKey) {
@@ -735,12 +733,7 @@ public final class MadokuItem {
 		if (item == null) {
 			return;
 		}
-		DataComponentMap base;
-		try {
-			base = item.components();
-		} catch (RuntimeException exception) {
-			return;
-		}
+		DataComponentMap base = item.components();
 
 		DataComponentMap.Builder builder = DataComponentMap.builder().addAll(base);
 		boolean changed = false;
@@ -822,12 +815,7 @@ public final class MadokuItem {
 		if (item == null) {
 			return;
 		}
-		DataComponentMap base;
-		try {
-			base = item.components();
-		} catch (RuntimeException exception) {
-			return;
-		}
+		DataComponentMap base = item.components();
 
 		DataComponentMap.Builder builder = DataComponentMap.builder().addAll(base);
 		boolean changed = false;
