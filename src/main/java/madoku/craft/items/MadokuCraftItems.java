@@ -5,6 +5,7 @@ import madoku.craft.debug.MadokuDebug;
 import madoku.craft.items.item.system.MadokuItem;
 import madoku.craft.items.itemstack.system.MadokuItemStack;
 import madoku.craft.items.rarity.MadokuRarity;
+import madoku.craft.items.smelting.system.MadokuSmeltingManager;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -18,10 +19,11 @@ public class MadokuCraftItems implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		StaticJsonSystem.initialize();
+		MadokuSmeltingManager.initialize();
 		MadokuDebug.initialize();
 		MadokuItem.initialize();
-		MadokuItemStack.initialize();
 		MadokuRarity.initialize();
+		MadokuItemStack.initialize();
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			MadokuItemStack.reset();
 			MadokuItemStack.loadPersistedData(server);

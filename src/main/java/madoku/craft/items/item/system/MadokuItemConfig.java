@@ -22,6 +22,9 @@ public final class MadokuItemConfig {
 	public static final String PRIMARY_CATEGORY_MISC = "misc";
 	public static final String PRIMARY_CATEGORY_TOOL = "tool";
 	public static final String PRIMARY_CATEGORY_ARMOR = "armor";
+	public static final String SECONDARY_CATEGORY_COMPOSTER = "composter";
+	public static final String SECONDARY_CATEGORY_FARMING = "farming";
+	public static final String FIELD_COMPOSTER_ADJUSTMENT = "composter_adjustment";
 
 	public static final String FIELD_FUEL_TICKS = "fuel_ticks";
 	public static final String FIELD_DURABILITY = "durability";
@@ -267,7 +270,7 @@ public final class MadokuItemConfig {
 	}
 
 	public static String normalizeCategoryValue(String rawCategoryValue) {
-		String normalized = rawCategoryValue == null ? "" : rawCategoryValue.trim().toLowerCase(Locale.ROOT);
+		String normalized = normalizeCategoryKey(rawCategoryValue);
 		return normalized.isEmpty() ? PRIMARY_CATEGORY_MISC : normalized;
 	}
 
@@ -277,10 +280,10 @@ public final class MadokuItemConfig {
 			return categories;
 		}
 
-		String normalizedPrimaryCategory = normalizeCategoryValue(primaryCategory);
+		String normalizedPrimaryCategory = normalizeCategoryKey(primaryCategory);
 		Set<String> normalizedCategories = new LinkedHashSet<>();
 		for (String secondaryCategory : secondaryCategories) {
-			String normalizedCategory = normalizeCategoryValue(secondaryCategory);
+			String normalizedCategory = normalizeCategoryKey(secondaryCategory);
 			if (normalizedCategory.isEmpty() || normalizedCategory.equals(normalizedPrimaryCategory)) {
 				continue;
 			}
@@ -292,6 +295,10 @@ public final class MadokuItemConfig {
 		}
 
 		return categories;
+	}
+
+	private static String normalizeCategoryKey(String rawCategoryValue) {
+		return rawCategoryValue == null ? "" : rawCategoryValue.trim().toLowerCase(Locale.ROOT);
 	}
 
 	private static String fileKeyFromItemId(String itemId) {
