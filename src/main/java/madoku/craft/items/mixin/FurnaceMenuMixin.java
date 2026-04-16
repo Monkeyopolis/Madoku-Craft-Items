@@ -1,13 +1,10 @@
 package madoku.craft.items.mixin;
 
 import madoku.craft.items.item.system.MadokuItem;
-import madoku.craft.items.smelting.system.MadokuSmeltingManager;
 import net.minecraft.util.Mth;
 import net.minecraft.world.inventory.AbstractFurnaceMenu;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.AbstractCookingRecipe;
-import net.minecraft.world.item.crafting.RecipeType;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -19,22 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class FurnaceMenuMixin {
 	@Shadow
 	@Final
-	private RecipeType<? extends AbstractCookingRecipe> recipeType;
-
-	@Shadow
-	@Final
 	private ContainerData data;
-
-	@Inject(method = "canSmelt", at = @At("HEAD"), cancellable = true)
-	private void madokuCraft$canSmelt(ItemStack item, CallbackInfoReturnable<Boolean> cir) {
-		if (!MadokuSmeltingManager.isEnabled() || item == null || item.isEmpty()) {
-			return;
-		}
-
-		if (MadokuSmeltingManager.isAdditionalInput(this.recipeType, item)) {
-			cir.setReturnValue(true);
-		}
-	}
 
 	@Inject(method = "isFuel", at = @At("HEAD"), cancellable = true)
 	private static void madokuCraft$isFuel(ItemStack stack, CallbackInfoReturnable<Boolean> cir) {
