@@ -3,9 +3,9 @@
 	"id": "madoku-craft-items",
 	"version": "${version}",
 	"name": "Madoku Craft: Items",
-	"description": "Core module for upcoming Madoku Craft item features.",
+	"description": "A configurable Item overhaul system.",
 	"authors": [
-		"Me!"
+		"Monkeyopolis!"
 	],
 	"contact": {
 		"homepage": "https://fabricmc.net/",
@@ -23,7 +23,7 @@
 		"madoku-craft-items.mixins.json"
 	],
 	"depends": {
-		"fabricloader": ">=0.18.4",
+		"fabricloader": ">=0.19.2",
 		"minecraft": "~1.21.1",
 		"java": ">=21",
 		"fabric-api": "*",

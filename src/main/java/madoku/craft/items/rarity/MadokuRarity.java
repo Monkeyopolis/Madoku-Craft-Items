@@ -6,6 +6,7 @@ import madoku.craft.debug.MadokuDebug;
 import madoku.craft.items.item.system.MadokuItem;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -16,6 +17,7 @@ import net.minecraft.world.entity.EquipmentSlotGroup;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
@@ -79,7 +81,6 @@ public final class MadokuRarity {
 			return List.of();
 		}
 
-		// Avoid double-applying when multiple crafting hooks fire for the same output stack.
 		if (detectAppliedRarity(stack) != null) {
 			return List.of();
 		}
@@ -187,6 +188,24 @@ public final class MadokuRarity {
 		stack.set(DataComponents.LORE, new ItemLore(updatedLines));
 	}
 
+	public static int resolveConfiguredMaxDamage(ItemStack stack, int configuredBaseMaxDamage) {
+		if (configuredBaseMaxDamage <= 0) {
+			return configuredBaseMaxDamage;
+		}
+
+		MadokuRarityTier rarity = detectAppliedRarity(stack);
+		if (rarity == null || rarity == MadokuRarityTier.COMMON) {
+			return configuredBaseMaxDamage;
+		}
+
+		double buffPercent = getRarityStatBuffPercent(rarity);
+		if (buffPercent <= 0.0D) {
+			return configuredBaseMaxDamage;
+		}
+
+		return roundToWhole(configuredBaseMaxDamage * multiplierFromBuffPercent(buffPercent));
+	}
+
 	private static void rollAndApplySingle(ServerPlayer player, ItemStack stack) {
 		rollAndApplySingle(player.getRandom(), stack);
 	}
@@ -200,6 +219,9 @@ public final class MadokuRarity {
 		if (stack == null || stack.isEmpty() || rarity == null) {
 			return;
 		}
+
+		MadokuItem.applyProfilesToFreshStack(stack);
+
 		if (rarity != MadokuRarityTier.COMMON) {
 			double buffPercent = getRarityStatBuffPercent(rarity);
 			if (buffPercent > 0.0D) {
@@ -266,12 +288,42 @@ public final class MadokuRarity {
 			scaledEffectMultiplier(multiplier, ATTACK_DAMAGE_SCALING_FACTOR),
 			scaledEffectMultiplier(multiplier, ATTACK_SPEED_SCALING_FACTOR)
 		);
-		scaleArmorAttributes(
-			stack,
+		if (!MadokuItem.isArmorCategoryItem(stack)) {
+			scaleArmorAttributes(
+				stack,
+				scaledEffectMultiplier(multiplier, ARMOR_SCALING_FACTOR),
+				scaledEffectMultiplier(multiplier, ARMOR_TOUGHNESS_SCALING_FACTOR)
+			);
+		}
+		scaleMiningSpeed(stack, scaledEffectMultiplier(multiplier, MINING_SPEED_SCALING_FACTOR));
+	}
+
+	public static ItemAttributeModifiers getScaledArmorAttributeModifiers(ItemStack stack) {
+		if (!isEnabled() || stack == null || stack.isEmpty() || !MadokuItem.isArmorCategoryItem(stack)) {
+			return null;
+		}
+
+		MadokuRarityTier rarity = detectAppliedRarity(stack);
+		if (rarity == null || rarity == MadokuRarityTier.COMMON) {
+			return null;
+		}
+
+		double buffPercent = getRarityStatBuffPercent(rarity);
+		if (buffPercent <= 0.0D) {
+			return null;
+		}
+
+		ItemAttributeModifiers baseAttributes = resolveBaseArmorAttributeModifiers(stack);
+		if (baseAttributes == null) {
+			return null;
+		}
+
+		double multiplier = multiplierFromBuffPercent(buffPercent);
+		return scaleArmorAttributeModifiers(
+			baseAttributes,
 			scaledEffectMultiplier(multiplier, ARMOR_SCALING_FACTOR),
 			scaledEffectMultiplier(multiplier, ARMOR_TOUGHNESS_SCALING_FACTOR)
 		);
-		scaleMiningSpeed(stack, scaledEffectMultiplier(multiplier, MINING_SPEED_SCALING_FACTOR));
 	}
 
 	private static double scaledEffectMultiplier(double multiplier, double factor) {
@@ -279,7 +331,7 @@ public final class MadokuRarity {
 	}
 
 	private static void scaleMaxDurability(ItemStack stack, double multiplier) {
-		Integer maxDamage = stack.get(DataComponents.MAX_DAMAGE);
+		Integer maxDamage = getResolvedComponent(stack, DataComponents.MAX_DAMAGE);
 		if (maxDamage == null || maxDamage <= 0) {
 			return;
 		}
@@ -287,37 +339,37 @@ public final class MadokuRarity {
 	}
 
 	private static void scaleMainHandAttackAttributes(ItemStack stack, double attackDamageMultiplier, double attackSpeedMultiplier) {
-		ItemAttributeModifiers current = stack.get(DataComponents.ATTRIBUTE_MODIFIERS);
+		ItemAttributeModifiers current = getResolvedComponent(stack, DataComponents.ATTRIBUTE_MODIFIERS);
 		if (current == null) {
 			return;
 		}
 
-			boolean changed = false;
-			ItemAttributeModifiers.Builder builder = ItemAttributeModifiers.builder();
-			for (ItemAttributeModifiers.Entry entry : current.modifiers()) {
-				AttributeModifier modifier = entry.modifier();
-				AttributeModifier updatedModifier = modifier;
-				if (isScaledAttackDamage(entry, modifier)) {
-					double currentValue = 1.0D + modifier.amount();
-					double scaledValue = roundToNearestHalf(currentValue * attackDamageMultiplier);
-					updatedModifier = new AttributeModifier(
-						modifier.id(),
-						scaledValue - 1.0D,
-						modifier.operation()
-					);
-					changed = true;
-				} else if (isScaledAttackSpeed(entry, modifier)) {
-					double currentValue = 4.0D + modifier.amount();
-					double scaledValue = roundToTenth(currentValue * attackSpeedMultiplier);
-					updatedModifier = new AttributeModifier(
-						modifier.id(),
-						scaledValue - 4.0D,
-						modifier.operation()
-					);
-					changed = true;
-				}
-				builder.add(entry.attribute(), updatedModifier, entry.slot());
+		boolean changed = false;
+		ItemAttributeModifiers.Builder builder = ItemAttributeModifiers.builder();
+		for (ItemAttributeModifiers.Entry entry : current.modifiers()) {
+			AttributeModifier modifier = entry.modifier();
+			AttributeModifier updatedModifier = modifier;
+			if (isScaledAttackDamage(entry, modifier)) {
+				double currentValue = 1.0D + modifier.amount();
+				double scaledValue = roundToNearestHalf(currentValue * attackDamageMultiplier);
+				updatedModifier = new AttributeModifier(
+					modifier.id(),
+					scaledValue - 1.0D,
+					modifier.operation()
+				);
+				changed = true;
+			} else if (isScaledAttackSpeed(entry, modifier)) {
+				double currentValue = 4.0D + modifier.amount();
+				double scaledValue = roundToTenth(currentValue * attackSpeedMultiplier);
+				updatedModifier = new AttributeModifier(
+					modifier.id(),
+					scaledValue - 4.0D,
+					modifier.operation()
+				);
+				changed = true;
 			}
+			builder.add(entry.attribute(), updatedModifier, entry.slot());
+		}
 
 		if (changed) {
 			stack.set(DataComponents.ATTRIBUTE_MODIFIERS, builder.build());
@@ -325,39 +377,52 @@ public final class MadokuRarity {
 	}
 
 	private static void scaleArmorAttributes(ItemStack stack, double armorMultiplier, double toughnessMultiplier) {
-		ItemAttributeModifiers current = stack.get(DataComponents.ATTRIBUTE_MODIFIERS);
+		ItemAttributeModifiers current = getResolvedComponent(stack, DataComponents.ATTRIBUTE_MODIFIERS);
 		if (current == null) {
 			return;
 		}
 
-			boolean changed = false;
-			ItemAttributeModifiers.Builder builder = ItemAttributeModifiers.builder();
-			for (ItemAttributeModifiers.Entry entry : current.modifiers()) {
-				AttributeModifier modifier = entry.modifier();
-				AttributeModifier updatedModifier = modifier;
-				if (isScaledArmor(entry, modifier)) {
-					double scaledValue = roundToNearestQuarter(modifier.amount() * armorMultiplier);
-					updatedModifier = new AttributeModifier(
-						modifier.id(),
-						scaledValue,
-						modifier.operation()
-					);
-					changed = true;
-				} else if (isScaledArmorToughness(entry, modifier)) {
-					double scaledValue = roundToNearestQuarter(modifier.amount() * toughnessMultiplier);
-					updatedModifier = new AttributeModifier(
-						modifier.id(),
-						scaledValue,
-						modifier.operation()
-					);
-					changed = true;
-				}
-				builder.add(entry.attribute(), updatedModifier, entry.slot());
-			}
-
-		if (changed) {
-			stack.set(DataComponents.ATTRIBUTE_MODIFIERS, builder.build());
+		ItemAttributeModifiers updated = scaleArmorAttributeModifiers(current, armorMultiplier, toughnessMultiplier);
+		if (updated != null && !updated.equals(current)) {
+			stack.set(DataComponents.ATTRIBUTE_MODIFIERS, updated);
 		}
+	}
+
+	private static ItemAttributeModifiers scaleArmorAttributeModifiers(
+		ItemAttributeModifiers current,
+		double armorMultiplier,
+		double toughnessMultiplier
+	) {
+		if (current == null) {
+			return null;
+		}
+
+		boolean changed = false;
+		ItemAttributeModifiers.Builder builder = ItemAttributeModifiers.builder();
+		for (ItemAttributeModifiers.Entry entry : current.modifiers()) {
+			AttributeModifier modifier = entry.modifier();
+			AttributeModifier updatedModifier = modifier;
+			if (isScaledArmor(entry, modifier)) {
+				double scaledValue = roundToNearestQuarter(modifier.amount() * armorMultiplier);
+				updatedModifier = new AttributeModifier(
+					modifier.id(),
+					scaledValue,
+					modifier.operation()
+				);
+				changed = true;
+			} else if (isScaledArmorToughness(entry, modifier)) {
+				double scaledValue = roundToNearestQuarter(modifier.amount() * toughnessMultiplier);
+				updatedModifier = new AttributeModifier(
+					modifier.id(),
+					scaledValue,
+					modifier.operation()
+				);
+				changed = true;
+			}
+			builder.add(entry.attribute(), updatedModifier, entry.slot());
+		}
+
+		return changed ? builder.build() : current;
 	}
 
 	private static boolean isScaledAttackDamage(ItemAttributeModifiers.Entry entry, AttributeModifier modifier) {
@@ -396,31 +461,31 @@ public final class MadokuRarity {
 	}
 
 	private static void scaleMiningSpeed(ItemStack stack, double multiplier) {
-		Tool current = stack.get(DataComponents.TOOL);
+		Tool current = getResolvedComponent(stack, DataComponents.TOOL);
 		if (current == null) {
 			return;
 		}
 
-			boolean changed = false;
-			List<Tool.Rule> updatedRules = new ArrayList<>(current.rules().size());
-			for (Tool.Rule rule : current.rules()) {
-				Optional<Float> speed = rule.speed();
-				if (speed.isPresent()) {
-					updatedRules.add(new Tool.Rule(
-						rule.blocks(),
-						Optional.of((float) roundToNearestHalf(speed.get() * multiplier)),
-						rule.correctForDrops()
-					));
-					changed = true;
-				} else {
-					updatedRules.add(rule);
-				}
-			}
-
-			float updatedDefaultSpeed = (float) roundToNearestHalf(current.defaultMiningSpeed() * multiplier);
-			if (updatedDefaultSpeed != current.defaultMiningSpeed()) {
+		boolean changed = false;
+		List<Tool.Rule> updatedRules = new ArrayList<>(current.rules().size());
+		for (Tool.Rule rule : current.rules()) {
+			Optional<Float> speed = rule.speed();
+			if (speed.isPresent()) {
+				updatedRules.add(new Tool.Rule(
+					rule.blocks(),
+					Optional.of((float) roundToNearestHalf(speed.get() * multiplier)),
+					rule.correctForDrops()
+				));
 				changed = true;
+			} else {
+				updatedRules.add(rule);
 			}
+		}
+
+		float updatedDefaultSpeed = (float) roundToNearestHalf(current.defaultMiningSpeed() * multiplier);
+		if (updatedDefaultSpeed != current.defaultMiningSpeed()) {
+			changed = true;
+		}
 
 		if (changed) {
 			stack.set(DataComponents.TOOL, new Tool(
@@ -478,6 +543,41 @@ public final class MadokuRarity {
 
 	private static double roundToNearestQuarter(double value) {
 		return Math.round(value * 4.0D) / 4.0D;
+	}
+
+	private static <T> T getResolvedComponent(ItemStack stack, DataComponentType<? extends T> componentType) {
+		if (stack == null || stack.isEmpty() || componentType == null) {
+			return null;
+		}
+
+		T stackValue = stack.get(componentType);
+		if (stackValue != null) {
+			return stackValue;
+		}
+
+		Item item = stack.getItem();
+		if (item == null) {
+			return null;
+		}
+		if (componentType == DataComponents.ATTRIBUTE_MODIFIERS && item instanceof ArmorItem armorItem) {
+			@SuppressWarnings("unchecked")
+			T armorAttributes = (T) armorItem.getDefaultAttributeModifiers();
+			return armorAttributes;
+		}
+		return item.components().get(componentType);
+	}
+
+	private static ItemAttributeModifiers resolveBaseArmorAttributeModifiers(ItemStack stack) {
+		if (stack == null || stack.isEmpty()) {
+			return null;
+		}
+
+		Item item = stack.getItem();
+		if (item instanceof ArmorItem armorItem) {
+			return armorItem.getDefaultAttributeModifiers();
+		}
+
+		return getResolvedComponent(stack, DataComponents.ATTRIBUTE_MODIFIERS);
 	}
 
 	private static Path resolveJsonFile(Path directory, String fileName) {

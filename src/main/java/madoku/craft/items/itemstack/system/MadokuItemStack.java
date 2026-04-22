@@ -37,6 +37,7 @@ public final class MadokuItemStack {
 	private static final String DATA_KEPT_STACKS_KEY = "kept_stacks";
 	private static final String DATA_ENTRY_SLOT_KEY = "slot";
 	private static final String DATA_ENTRY_STACK_KEY = "stack";
+	private static final String DATA_ENTRY_COUNT_KEY = "count";
 	private static final long AUTOSAVE_INTERVAL_TICKS = 60L * 20L;
 
 	private static final MadokuItemStackConfig configuration = new MadokuItemStackConfig();
@@ -96,6 +97,10 @@ public final class MadokuItemStack {
 		return MadokuItemStackConfig.MAX_STACK_CAP;
 	}
 
+	public static boolean usesManagedDeathDrop() {
+		return isEnabled() && configuration.deathDropEnabled;
+	}
+
 	public static int adjustStackLimit(int originalLimit) {
 		if (!isEnabled() || originalLimit <= 1) {
 			return originalLimit;
@@ -114,6 +119,22 @@ public final class MadokuItemStack {
 			return maximum;
 		}
 		return Math.max(maximum, getMaxStackCap());
+	}
+
+	public static DataResult<Integer> validateCodecCount(int minimum, int maximum, int value) {
+		int upper = shouldExtendCodecRange(minimum, maximum)
+			? getCodecUpperBound(maximum)
+			: maximum;
+
+		if (value < minimum) {
+			return DataResult.error(() -> "Value must be within range [" + minimum + ";" + upper + "]: " + value);
+		}
+
+		if (value > upper) {
+			return DataResult.success(upper);
+		}
+
+		return DataResult.success(value);
 	}
 
 	public static boolean handleInventoryDrop(Inventory inventory) {
@@ -211,8 +232,7 @@ public final class MadokuItemStack {
 				}
 
 				int slot = slotElement.getAsInt();
-				DataResult<ItemStack> decoded = ItemStack.CODEC.parse(ops, stackElement);
-				ItemStack stack = decoded.result().orElse(ItemStack.EMPTY);
+				ItemStack stack = decodeStoredStack(entryObject, ops, stackElement);
 				if (stack.isEmpty()) {
 					continue;
 				}
@@ -246,14 +266,14 @@ public final class MadokuItemStack {
 				if (keptStack == null || keptStack.stack() == null || keptStack.stack().isEmpty()) {
 					continue;
 				}
-				DataResult<JsonElement> encoded = ItemStack.CODEC.encodeStart(ops, keptStack.stack());
-				JsonElement stackElement = encoded.result().orElse(null);
+				JsonElement stackElement = encodeStoredStack(ops, keptStack.stack());
 				if (stackElement == null) {
 					continue;
 				}
 
 				JsonObject encodedEntry = new JsonObject();
 				encodedEntry.addProperty(DATA_ENTRY_SLOT_KEY, keptStack.slot());
+				encodedEntry.addProperty(DATA_ENTRY_COUNT_KEY, keptStack.stack().getCount());
 				encodedEntry.add(DATA_ENTRY_STACK_KEY, stackElement);
 				encodedStacks.add(encodedEntry);
 			}
@@ -427,6 +447,35 @@ public final class MadokuItemStack {
 			normalized = normalized + ".json";
 		}
 		return directory.resolve(normalized);
+	}
+
+	private static ItemStack decodeStoredStack(JsonObject entryObject, RegistryOps<JsonElement> ops, JsonElement stackElement) {
+		DataResult<ItemStack> decoded = ItemStack.CODEC.parse(ops, stackElement);
+		ItemStack stack = decoded.result().orElse(ItemStack.EMPTY);
+		if (stack.isEmpty()) {
+			return ItemStack.EMPTY;
+		}
+
+		int storedCount = stack.getCount();
+		JsonElement countElement = entryObject.get(DATA_ENTRY_COUNT_KEY);
+		if (countElement != null && countElement.isJsonPrimitive() && countElement.getAsJsonPrimitive().isNumber()) {
+			storedCount = countElement.getAsInt();
+		}
+
+		stack.setCount(Math.max(1, storedCount));
+		return stack;
+	}
+
+	private static JsonElement encodeStoredStack(RegistryOps<JsonElement> ops, ItemStack stack) {
+		if (stack == null || stack.isEmpty()) {
+			return null;
+		}
+
+		int safeCount = Math.max(1, Math.min(stack.getCount(), 99));
+		ItemStack encodedStack = stack.copy();
+		encodedStack.setCount(safeCount);
+		DataResult<JsonElement> encoded = ItemStack.CODEC.encodeStart(ops, encodedStack);
+		return encoded.result().orElse(null);
 	}
 
 	private record KeptStack(int slot, ItemStack stack) {

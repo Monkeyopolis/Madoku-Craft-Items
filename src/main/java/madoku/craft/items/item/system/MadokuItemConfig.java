@@ -4,8 +4,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public final class MadokuItemConfig {
 	public static final String FIELD_ITEM_SYSTEM_ENABLED = "itemSystemEnabled";
@@ -20,6 +22,9 @@ public final class MadokuItemConfig {
 	public static final String PRIMARY_CATEGORY_MISC = "misc";
 	public static final String PRIMARY_CATEGORY_TOOL = "tool";
 	public static final String PRIMARY_CATEGORY_ARMOR = "armor";
+	public static final String SECONDARY_CATEGORY_COMPOSTER = "composter";
+	public static final String SECONDARY_CATEGORY_FARMING = "farming";
+	public static final String FIELD_COMPOSTER_ADJUSTMENT = "composter_adjustment";
 
 	public static final String FIELD_FUEL_TICKS = "fuel_ticks";
 	public static final String FIELD_DURABILITY = "durability";
@@ -167,7 +172,12 @@ public final class MadokuItemConfig {
 		return buildBaseDefaults(itemId, stackValue, primaryCategory, new String[0]);
 	}
 
-	public static JsonObject buildBaseDefaults(String itemId, String stackValue, String primaryCategory, String... secondaryCategories) {
+	public static JsonObject buildBaseDefaults(
+		String itemId,
+		String stackValue,
+		String primaryCategory,
+		String... secondaryCategories
+	) {
 		JsonObject defaults = new JsonObject();
 		defaults.addProperty(FIELD_ITEM_ID, itemId == null ? "" : itemId);
 		defaults.addProperty(FIELD_PRIMARY_CATEGORY, normalizeCategoryValue(primaryCategory));
@@ -199,31 +209,22 @@ public final class MadokuItemConfig {
 		if (secondaryCategories == null || secondaryCategories.length == 0) {
 			return categories;
 		}
-		for (String secondaryCategory : secondaryCategories) {
-			String normalized = normalizeCategoryValue(secondaryCategory);
-			if (normalized.isBlank()) {
-				continue;
-			}
-			if (normalized.equals(normalizeCategoryValue(primaryCategory))) {
-				continue;
-			}
-			boolean alreadyPresent = false;
-			for (int index = 0; index < categories.size(); index++) {
-				if (normalized.equals(categories.get(index).getAsString())) {
-					alreadyPresent = true;
-					break;
-				}
-			}
-			if (!alreadyPresent) {
-				categories.add(normalized);
-			}
-		}
-		return categories;
-	}
 
-	private static String normalizeCategoryValue(String rawCategoryValue) {
-		String normalized = rawCategoryValue == null ? "" : rawCategoryValue.trim().toLowerCase(Locale.ROOT);
-		return normalized.isEmpty() ? PRIMARY_CATEGORY_MISC : normalized;
+		String normalizedPrimaryCategory = normalizeCategoryKey(primaryCategory);
+		Set<String> normalizedCategories = new LinkedHashSet<>();
+		for (String secondaryCategory : secondaryCategories) {
+			String normalizedCategory = normalizeCategoryKey(secondaryCategory);
+			if (normalizedCategory.isEmpty() || normalizedCategory.equals(normalizedPrimaryCategory)) {
+				continue;
+			}
+			normalizedCategories.add(normalizedCategory);
+		}
+
+		for (String secondaryCategory : normalizedCategories) {
+			categories.add(secondaryCategory);
+		}
+
+		return categories;
 	}
 
 	private static String fileKeyFromItemId(String itemId) {
@@ -326,18 +327,17 @@ public final class MadokuItemConfig {
 	public static Map<String, JsonObject> buildDefaultToolItemProfiles() {
 		Map<String, JsonObject> defaults = new LinkedHashMap<>();
 
-		String[] materials = {"wooden", "stone", "iron", "golden", "diamond", "netherite"};
-		int[] durability = {32, 64, 256, 512, 2048, 4096};
-		int[] materialLevel = {0, 1, 2, 3, 3, 4};
-		int[] materialProgress = {0, 1, 3, 4, 5, 6};
-		double[] pickAndShovelDamage = {1.0, 1.5, 2.5, 3.0, 3.5, 4.0};
+		String[] materials = {"wooden", "stone", "copper", "iron", "golden", "diamond", "netherite"};
+		int[] durability = {64, 128, 256, 512, 1024, 2048, 4096};
+		int[] materialLevel = {0, 1, 2, 2, 3, 3, 4};
+		double[] pickAndShovelDamage = {1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0};
 
 		for (int index = 0; index < materials.length; index++) {
 			String prefix = "minecraft:" + materials[index] + "_";
 			int itemDurability = durability[index];
 			int itemLevel = materialLevel[index];
-			double attackStep = materialProgress[index];
-			double miningSpeed = 2.0 + (materialProgress[index] * 2.0);
+			double attackStep = index;
+			double miningSpeed = 2.0 + (index * 2.0);
 
 			defaults.put(
 				prefix + "sword",
@@ -379,10 +379,10 @@ public final class MadokuItemConfig {
 
 	public static Map<String, JsonObject> buildDefaultArmorItemProfiles() {
 		Map<String, JsonObject> defaults = new LinkedHashMap<>();
-		String[] materials = {"leather", "iron", "golden", "diamond", "netherite"};
-		int[] durability = {128, 384, 512, 768, 1024};
-		double[] armor = {1.0, 3.0, 4.0, 5.0, 6.0};
-		double[] toughness = {0.5, 1.5, 2.0, 2.5, 3.0};
+		String[] materials = {"leather", "copper", "iron", "golden", "diamond", "netherite"};
+		int[] durability = {192, 256, 384, 512, 768, 1024};
+		double[] armor = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+		double[] toughness = {0.5, 1.0, 1.5, 2.0, 2.5, 3.0};
 		String[] pieces = {"helmet", "chestplate", "leggings", "boots"};
 
 		for (int materialIndex = 0; materialIndex < materials.length; materialIndex++) {
@@ -407,10 +407,20 @@ public final class MadokuItemConfig {
 
 	public static Map<String, Boolean> buildDefaultMiscItems() {
 		Map<String, Boolean> defaults = new LinkedHashMap<>();
+		defaults.put("minecraft:bone_meal", true);
 		defaults.put("minecraft:water_bucket", true);
 		defaults.put("minecraft:milk_bucket", true);
 		defaults.put("minecraft:powder_snow_bucket", true);
 		return defaults;
+	}
+
+	public static String normalizeCategoryValue(String rawCategoryValue) {
+		String normalized = normalizeCategoryKey(rawCategoryValue);
+		return normalized.isEmpty() ? PRIMARY_CATEGORY_MISC : normalized;
+	}
+
+	private static String normalizeCategoryKey(String rawCategoryValue) {
+		return rawCategoryValue == null ? "" : rawCategoryValue.trim().toLowerCase(Locale.ROOT);
 	}
 }
 

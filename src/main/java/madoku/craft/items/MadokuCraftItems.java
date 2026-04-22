@@ -1,5 +1,7 @@
 package madoku.craft.items;
 
+import madoku.craft.config.StaticJsonSystem;
+import madoku.craft.debug.MadokuDebug;
 import madoku.craft.items.item.system.MadokuItem;
 import madoku.craft.items.itemstack.system.MadokuItemStack;
 import madoku.craft.items.rarity.MadokuRarity;
@@ -15,9 +17,11 @@ public class MadokuCraftItems implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		StaticJsonSystem.initialize();
+		MadokuDebug.initialize();
 		MadokuItem.initialize();
-		MadokuItemStack.initialize();
 		MadokuRarity.initialize();
+		MadokuItemStack.initialize();
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			MadokuItemStack.reset();
 			MadokuItemStack.loadPersistedData(server);
