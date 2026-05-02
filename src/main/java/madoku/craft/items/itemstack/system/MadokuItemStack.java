@@ -6,8 +6,9 @@ import com.google.gson.JsonObject;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JsonOps;
 import madoku.craft.clock.MadokuTicks;
-import madoku.craft.config.StaticJsonSystem;
-import madoku.craft.data.MadokuData;
+import madoku.craft.config.JsonManagerSystem;
+import madoku.craft.config.JsonStaticSystem;
+import madoku.craft.data.DataManagerSystem;
 import madoku.craft.debug.MadokuDebug;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.minecraft.resources.RegistryOps;
@@ -37,8 +38,6 @@ public final class MadokuItemStack {
 	private static final String DATA_KEPT_STACKS_KEY = "kept_stacks";
 	private static final String DATA_ENTRY_SLOT_KEY = "slot";
 	private static final String DATA_ENTRY_STACK_KEY = "stack";
-	private static final long AUTOSAVE_INTERVAL_TICKS = 60L * 20L;
-
 	private static final MadokuItemStackConfig configuration = new MadokuItemStackConfig();
 	private static final Map<UUID, List<KeptStack>> keptStacksByPlayer = new HashMap<>();
 	private static long lastAutosaveBucket = Long.MIN_VALUE;
@@ -60,17 +59,18 @@ public final class MadokuItemStack {
 		if (server == null) {
 			return;
 		}
-		MadokuData.createWorldData(server, DATA_FOLDER_NAME, DATA_FILE_NAME, createDefaultData());
-		JsonObject data = MadokuData.loadWorldData(server, DATA_FOLDER_NAME, DATA_FILE_NAME);
+		JsonObject data = DataManagerSystem.loadWorldData(server, DATA_FOLDER_NAME, DATA_FILE_NAME, createDefaultData());
 		applyPersistedData(server, data);
-		lastAutosaveBucket = Math.floorDiv(MadokuTicks.getGameplayTicks(), AUTOSAVE_INTERVAL_TICKS);
+		long autoSaveIntervalTicks = DataManagerSystem.getAutoSaveIntervalTicks(server, DATA_FOLDER_NAME, DATA_FILE_NAME);
+		lastAutosaveBucket = Math.floorDiv(MadokuTicks.getGameplayTicks(), autoSaveIntervalTicks);
 	}
 
 	public static void autosavePersistedData(MinecraftServer server) {
 		if (server == null) {
 			return;
 		}
-		long bucket = Math.floorDiv(MadokuTicks.getGameplayTicks(), AUTOSAVE_INTERVAL_TICKS);
+		long autoSaveIntervalTicks = DataManagerSystem.getAutoSaveIntervalTicks(server, DATA_FOLDER_NAME, DATA_FILE_NAME);
+		long bucket = Math.floorDiv(MadokuTicks.getGameplayTicks(), autoSaveIntervalTicks);
 		if (bucket != lastAutosaveBucket) {
 			lastAutosaveBucket = bucket;
 			savePersistedData(server);
@@ -81,11 +81,11 @@ public final class MadokuItemStack {
 		if (server == null) {
 			return;
 		}
-		MadokuData.saveWorldData(server, DATA_FOLDER_NAME, DATA_FILE_NAME, toPersistedData(server));
+		DataManagerSystem.saveWorldData(server, DATA_FOLDER_NAME, DATA_FILE_NAME, toPersistedData(server));
 	}
 
 	public static boolean isEnabled() {
-		return configuration.enableFeature;
+		return configuration.enabled;
 	}
 
 	public static boolean usesManagedDeathDrop() {
@@ -292,14 +292,17 @@ public final class MadokuItemStack {
 	}
 
 	private static void loadStaticConfig() {
-		JsonObject defaults = MadokuItemStackConfig.buildItemStackDefaults();
 		try {
-			Path directory = StaticJsonSystem.getOrCreateGlobalSystemDirectory(ITEMSTACK_CONFIG_FOLDER_NAME);
+			Path directory = JsonManagerSystem.getOrCreateGlobalSystemDirectory(ITEMSTACK_CONFIG_FOLDER_NAME);
 			Path configFile = resolveJsonFile(directory, ITEMSTACK_CONFIG_FILE_NAME);
-			JsonObject root = StaticJsonSystem.ensureManagedFile(configFile, defaults);
+			JsonStaticSystem.ManagedStaticDocument document = JsonStaticSystem.readManagedDocument(configFile);
+			JsonObject root = document.main();
+			JsonObject general = document.general();
+			configuration.enabled = readBoolean(general, "enabled", true);
 			boolean changed = configuration.updateItemStack(root);
-			if (changed) {
-				StaticJsonSystem.writeManagedFile(configFile, root, defaults);
+			general.addProperty("enabled", configuration.enabled);
+			if (changed || !root.equals(document.main()) || !general.equals(document.general())) {
+				JsonStaticSystem.writeManagedDocument(configFile, root, general);
 			}
 			emitConfigLoaded();
 		} catch (IOException | RuntimeException exception) {
@@ -317,7 +320,7 @@ public final class MadokuItemStack {
 		MadokuDebug.event(metricId, MadokuDebug.Domain.ITEM)
 			.side(MadokuDebug.Side.SERVER)
 			.subject("itemstack:global")
-			.field("enabled", configuration.enableFeature)
+			.field("enabled", configuration.enabled)
 			.field("stack_limit", configuration.customStackAmount)
 			.field("death_drop_enabled", configuration.deathDropEnabled)
 			.field("death_drop_percent", configuration.deathDropStackPercent)
@@ -451,6 +454,21 @@ public final class MadokuItemStack {
 			normalized = normalized + ".json";
 		}
 		return directory.resolve(normalized);
+	}
+
+	private static boolean readBoolean(JsonObject root, String key, boolean fallback) {
+		if (root == null || key == null || key.isBlank()) {
+			return fallback;
+		}
+		JsonElement element = root.get(key);
+		if (element == null || !element.isJsonPrimitive() || !element.getAsJsonPrimitive().isBoolean()) {
+			return fallback;
+		}
+		try {
+			return element.getAsBoolean();
+		} catch (RuntimeException exception) {
+			return fallback;
+		}
 	}
 
 	private record KeptStack(int slot, ItemStack stack) {

@@ -17,6 +17,9 @@
 	"entrypoints": {
 		"main": [
 			"madoku.craft.items.MadokuCraftItems"
+		],
+		"client": [
+			"madoku.craft.items.MadokuCraftItemsClient"
 		]
 	},
 	"mixins": [
