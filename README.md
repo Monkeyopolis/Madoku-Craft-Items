@@ -11,13 +11,15 @@ Most of these features are customizable in the CONFIG files.
 - Fabric API
 - Madoku Craft API
 
-## Implementation
+## Features
 
 Material Tiers:
+
 - By default, Golden variant tools were enhanced to have better stats than Iron variants.
 - All Tools had their stats increased across all Material variants.
 
 Fuel Items:
+
 - Magma Blocks were added as a new Fuel Item.
 - You can add, remove and modify Fuel Items in the CONFIG files.
 

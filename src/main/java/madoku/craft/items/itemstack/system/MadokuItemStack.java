@@ -38,6 +38,7 @@ public final class MadokuItemStack {
 	private static final String DATA_KEPT_STACKS_KEY = "kept_stacks";
 	private static final String DATA_ENTRY_SLOT_KEY = "slot";
 	private static final String DATA_ENTRY_STACK_KEY = "stack";
+
 	private static final MadokuItemStackConfig configuration = new MadokuItemStackConfig();
 	private static final Map<UUID, List<KeptStack>> keptStacksByPlayer = new HashMap<>();
 	private static long lastAutosaveBucket = Long.MIN_VALUE;
@@ -474,4 +475,3 @@ public final class MadokuItemStack {
 	private record KeptStack(int slot, ItemStack stack) {
 	}
 }
-

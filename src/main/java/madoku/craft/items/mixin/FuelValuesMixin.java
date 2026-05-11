@@ -1,5 +1,6 @@
 package madoku.craft.items.mixin;
 
+import madoku.craft.debug.MadokuDebug;
 import madoku.craft.items.item.system.MadokuItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.FuelValues;
@@ -16,7 +17,16 @@ public abstract class FuelValuesMixin {
 			return;
 		}
 
-		if (MadokuItem.isConfiguredFuel(stack)) {
+		boolean configuredFuel = MadokuItem.isConfiguredFuel(stack);
+		if (MadokuDebug.shouldEmit(MadokuDebug.Domain.SMELTING, "smelting.fuel_gate")) {
+			MadokuDebug.event("smelting.fuel_gate", MadokuDebug.Domain.SMELTING)
+				.side(MadokuDebug.Side.SERVER)
+				.subject("fuel:" + (stack == null || stack.isEmpty() ? "empty" : stack.getItem()))
+				.field("item", stack == null || stack.isEmpty() ? "empty" : stack.getItem().toString())
+				.field("configured_fuel", configuredFuel)
+				.log();
+		}
+		if (configuredFuel) {
 			cir.setReturnValue(true);
 		}
 	}

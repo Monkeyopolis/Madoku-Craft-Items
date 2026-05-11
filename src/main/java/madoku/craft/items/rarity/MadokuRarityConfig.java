@@ -145,4 +145,3 @@ public final class MadokuRarityConfig {
 		return value;
 	}
 }
-

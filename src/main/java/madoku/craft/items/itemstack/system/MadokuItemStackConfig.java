@@ -91,5 +91,5 @@ public final class MadokuItemStackConfig {
 		root.addProperty(key, value);
 		return true;
 	}
-}
 
+}
