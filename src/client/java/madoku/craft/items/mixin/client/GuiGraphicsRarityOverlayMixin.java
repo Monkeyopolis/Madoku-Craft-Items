@@ -6,6 +6,7 @@ import madoku.craft.items.rarity.MadokuRarityTier;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -82,8 +83,8 @@ public abstract class GuiGraphicsRarityOverlayMixin {
 		int indicatorHeight = textRenderer.lineHeight;
 		int textX = x + 17 - indicatorWidth + INDICATOR_X_OFFSET;
 		int textY = y + 16 - indicatorHeight + INDICATOR_Y_OFFSET;
-		Integer colorValue = rarity.color().getColor();
-		int textColor = (colorValue != null ? colorValue : 0xFFFFFF) | 0xFF000000;
+		TextColor color = TextColor.fromLegacyFormat(rarity.color());
+		int textColor = (color != null ? color.getValue() : 0xFFFFFF) | 0xFF000000;
 
 		this.text(textRenderer, indicator, textX, textY, textColor, true);
 	}

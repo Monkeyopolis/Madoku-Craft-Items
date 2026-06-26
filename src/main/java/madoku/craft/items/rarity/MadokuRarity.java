@@ -471,8 +471,8 @@ public final class MadokuRarity {
 
 		int rgb = color.getValue();
 		for (MadokuRarityTier rarity : MadokuRarityTier.values()) {
-			Integer rarityColor = rarity.color().getColor();
-			if (rarityColor != null && rarityColor == rgb) {
+			int rarityColor = TextColor.fromLegacyFormat(rarity.color()).getValue();
+			if (rarityColor == rgb) {
 				return rarity;
 			}
 		}
