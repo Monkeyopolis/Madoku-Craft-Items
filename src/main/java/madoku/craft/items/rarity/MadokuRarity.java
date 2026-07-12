@@ -1,9 +1,8 @@
 package madoku.craft.items.rarity;
 
 import com.google.gson.JsonObject;
-import madoku.craft.config.JsonManagerSystem;
-import madoku.craft.config.JsonStaticSystem;
-import madoku.craft.debug.MadokuDebug;
+import madoku.craft.api.json.JSONFormatManager;
+import madoku.craft.api.json.MadokuJSONManager;
 import madoku.craft.items.item.system.MadokuItem;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
@@ -54,14 +53,13 @@ public final class MadokuRarity {
 		JsonObject defaults = MadokuRarityConfig.buildDefaults();
 
 		try {
-			Path directory = JsonManagerSystem.getOrCreateGlobalSystemDirectory(RARITY_CONFIG_FOLDER_NAME);
+			Path directory = MadokuJSONManager.getOrCreateGlobalSystemDirectory(RARITY_CONFIG_FOLDER_NAME);
 			Path configFile = resolveJsonFile(directory, RARITY_CONFIG_FILE_NAME);
-			JsonObject normalized = JsonStaticSystem.ensureManagedFile(configFile, defaults);
+			JsonObject normalized = JSONFormatManager.ensureManagedFile(configFile, defaults);
 			boolean changed = config.update(normalized);
 			if (changed) {
-				JsonStaticSystem.writeManagedFile(configFile, normalized, defaults);
+				JSONFormatManager.writeManagedFile(configFile, normalized, defaults);
 			}
-			emitConfigLoaded();
 		} catch (IOException | RuntimeException exception) {
 			config.enabled = false;
 			LOGGER.error("Failed to load MadokuRarity config; disabling rarity.", exception);
@@ -504,23 +502,4 @@ public final class MadokuRarity {
 		return directory.resolve(withExtension);
 	}
 
-	private static void emitConfigLoaded() {
-		String metricId = "rarity.config_loaded";
-		if (!MadokuDebug.shouldEmit(MadokuDebug.Domain.ITEM, metricId)) {
-			return;
-		}
-
-		MadokuDebug.event(metricId, MadokuDebug.Domain.ITEM)
-			.side(MadokuDebug.Side.SERVER)
-			.subject("rarity:global")
-			.field("enabled", config.enabled)
-			.field("common_weight", config.commonChanceWeight)
-			.field("rare_weight", config.rareChanceWeight)
-			.field("epic_weight", config.epicChanceWeight)
-			.field("mythic_weight", config.mythicChanceWeight)
-			.field("rare_buff_percent", config.rareStatBuffPercent)
-			.field("epic_buff_percent", config.epicStatBuffPercent)
-			.field("mythic_buff_percent", config.mythicStatBuffPercent)
-			.log();
-	}
 }

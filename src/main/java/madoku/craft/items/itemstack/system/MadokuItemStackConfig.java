@@ -3,6 +3,7 @@ package madoku.craft.items.itemstack.system;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import madoku.craft.api.json.JSONFormatManager;
 
 public final class MadokuItemStackConfig {
 	public static final int DEFAULT_STACK_LIMIT = 128;
@@ -34,11 +35,11 @@ public final class MadokuItemStackConfig {
 	}
 
 	public static JsonObject buildItemStackDefaults() {
-		JsonObject defaults = new JsonObject();
-		defaults.addProperty("customStackAmount", DEFAULT_STACK_LIMIT);
-		defaults.addProperty("deathDropEnabled", true);
-		defaults.addProperty("deathDropStackPercent", DEFAULT_DEATH_DROP_PERCENT);
-		return defaults;
+		return JSONFormatManager.object()
+			.put("customStackAmount", DEFAULT_STACK_LIMIT)
+			.put("deathDropEnabled", true)
+			.put("deathDropStackPercent", DEFAULT_DEATH_DROP_PERCENT)
+			.build();
 	}
 
 	private static int clampStackAmount(long rawValue) {

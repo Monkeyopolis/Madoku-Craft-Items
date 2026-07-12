@@ -4,11 +4,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import madoku.craft.clock.MadokuTicks;
-import madoku.craft.config.DynamicStaticSystem;
-import madoku.craft.config.JsonManagerSystem;
-import madoku.craft.config.JsonStaticSystem;
-import madoku.craft.debug.MadokuDebug;
+import madoku.craft.api.json.JSONFormatManager;
+import madoku.craft.api.json.JSONTypeManager;
+import madoku.craft.api.json.MadokuJSONManager;
+import madoku.craft.api.scheduler.MadokuSchedulerManager;
 import madoku.craft.items.itemstack.system.MadokuItemStack;
 import madoku.craft.items.mixin.ItemComponentsAccessor;
 import madoku.craft.items.mixin.ItemBuiltInRegistryHolderAccessor;
@@ -55,6 +54,9 @@ public final class MadokuItem {
 	private static final AttackRange DEFAULT_REACH = new AttackRange(0.0F, 3.0F, 0.0F, 5.0F, 0.3F, 1.0F);
 	private static final int MAX_FUEL_TICKS = 201600;
 	private static final long PLAYER_COMPONENT_SYNC_INTERVAL_TICKS = 5L;
+	private static final String TASK_TYPE_ITEM_PLAYER_TICK = "item_player_tick";
+	private static final String ITEM_PLAYER_TICK_SCHEDULER_KEY = "item_player_tick";
+	private static final long ITEM_PLAYER_TICK_DELAY = 1L;
 
 	private static final String ITEM_CONFIG_ROOT_FOLDER_NAME = "madoku-craft-items";
 	private static final String ITEM_CONFIG_SETTINGS_FILE_NAME = "madoku-items";
@@ -75,29 +77,91 @@ public final class MadokuItem {
 	private static volatile Map<Item, Set<String>> categoriesByItem = Map.of();
 	private static volatile Set<Item> toolCategoryItems = Set.of();
 	private static volatile Set<Item> armorCategoryItems = Set.of();
+	private static volatile String schedulerId = "";
+	private static volatile boolean tickQueued;
 
 	private MadokuItem() {
 	}
 
 	public static void initialize() {
 		loadStaticConfig();
+		MadokuSchedulerManager.registerTaskHandler(TASK_TYPE_ITEM_PLAYER_TICK, MadokuItem::runPlayerTickTask);
 	}
 
 	public static void onServerStarted(MinecraftServer server) {
 		applyConfiguredItemMetadata();
+		ensureQueued(server, ITEM_PLAYER_TICK_DELAY);
 	}
 
-	public static void onServerTick(MinecraftServer server) {
-		if (server == null || !enabled) {
+	public static void reset() {
+		schedulerId = "";
+		tickQueued = false;
+	}
+
+	private static void runPlayerTickTask(MinecraftServer server, MadokuSchedulerManager.TaskContext context, JsonObject payload) {
+		tickQueued = false;
+		if (server == null || context == null) {
 			return;
 		}
-		long gameplayTick = MadokuTicks.getGameplayTicks();
-		if (gameplayTick % PLAYER_COMPONENT_SYNC_INTERVAL_TICKS != 0L) {
-			return;
-		}
+
+		schedulerId = context.getSchedulerId();
+		long gameplayTick = context.getNowTick();
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 			onPlayerTick(server, player, gameplayTick);
 		}
+		ensureQueued(server, ITEM_PLAYER_TICK_DELAY);
+	}
+
+	private static void ensureQueued(MinecraftServer server, long delayTicks) {
+		if (server == null || tickQueued) {
+			return;
+		}
+
+		String currentSchedulerId = ensureScheduler();
+		if (MadokuSchedulerManager.hasQueuedTask(currentSchedulerId, TASK_TYPE_ITEM_PLAYER_TICK)) {
+			tickQueued = true;
+			return;
+		}
+		if (enqueue(currentSchedulerId, delayTicks)) {
+			tickQueued = true;
+			return;
+		}
+
+		schedulerId = MadokuSchedulerManager.createOrGetScheduler(
+			MadokuSchedulerManager.SchedulerBinding.global(ITEM_PLAYER_TICK_SCHEDULER_KEY)
+		);
+		if (enqueue(schedulerId, delayTicks)) {
+			tickQueued = true;
+			return;
+		}
+
+		LOGGER.error("Failed to enqueue item player tick task.");
+	}
+
+	private static String ensureScheduler() {
+		String current = schedulerId;
+		if (current != null && !current.isBlank()) {
+			return current;
+		}
+		schedulerId = MadokuSchedulerManager.createOrGetScheduler(
+			MadokuSchedulerManager.SchedulerBinding.global(ITEM_PLAYER_TICK_SCHEDULER_KEY)
+		);
+		return schedulerId;
+	}
+
+	private static boolean enqueue(String targetSchedulerId, long delayTicks) {
+		if (targetSchedulerId == null || targetSchedulerId.isBlank()) {
+			return false;
+		}
+		MadokuSchedulerManager.EnqueueStatus status = MadokuSchedulerManager.enqueue(
+			targetSchedulerId,
+			Math.max(0L, delayTicks),
+			TASK_TYPE_ITEM_PLAYER_TICK,
+			new JsonObject(),
+			MadokuSchedulerManager.TickDomain.GAMEPLAY
+		);
+		return status == MadokuSchedulerManager.EnqueueStatus.ACCEPTED
+			|| status == MadokuSchedulerManager.EnqueueStatus.QUEUE_FULL;
 	}
 
 	public static void applyConfiguredItemMetadata() {
@@ -109,9 +173,6 @@ public final class MadokuItem {
 		}
 		applyToolProfiles(toolProfilesByItem);
 		applyArmorProfiles(armorProfilesByItem);
-	}
-
-	public static void reset() {
 	}
 
 	public static String createClientSyncSnapshot() {
@@ -338,15 +399,15 @@ public final class MadokuItem {
 
 	private static void loadStaticConfig() {
 		try {
-			Path rootDirectory = JsonManagerSystem.getOrCreateGlobalSystemDirectory(ITEM_CONFIG_ROOT_FOLDER_NAME);
+			Path rootDirectory = MadokuJSONManager.getOrCreateGlobalSystemDirectory(ITEM_CONFIG_ROOT_FOLDER_NAME);
 			Path settingsFile = resolveJsonFile(rootDirectory, ITEM_CONFIG_SETTINGS_FILE_NAME);
-			JsonStaticSystem.ManagedStaticDocument settingsDocument = JsonStaticSystem.readManagedDocument(settingsFile);
-			JsonObject rawSettingsRoot = settingsDocument.main();
+			JSONFormatManager.ManagedDocument settingsDocument = JSONFormatManager.readManagedDocument(settingsFile);
+			JsonObject rawSettingsRoot = settingsDocument.data();
 			boolean itemSystemEnabled = readBoolean(rawSettingsRoot, FIELD_ENABLED, true);
 			JsonObject settingsRoot = normalizeCategoryFeatureSettings(rawSettingsRoot);
-			JsonObject settingsGeneral = settingsDocument.general();
+			JsonObject settingsGeneral = settingsDocument.settings();
 			settingsGeneral.addProperty(FIELD_ENABLED, itemSystemEnabled);
-			JsonStaticSystem.writeManagedDocument(settingsFile, settingsRoot, settingsGeneral);
+			JSONFormatManager.writeManagedDocument(settingsFile, settingsRoot, settingsGeneral, JSONTypeManager.STATIC_CONFIG);
 			boolean fuelCategoryEnabled = readBoolean(settingsRoot, MadokuItemConfig.FIELD_FUEL_ENABLED, true);
 			boolean miscCategoryEnabled = readBoolean(settingsRoot, MadokuItemConfig.FIELD_MISC_ENABLED, true);
 			boolean toolCategoryEnabled = readBoolean(settingsRoot, MadokuItemConfig.FIELD_TOOL_ENABLED, true);
@@ -358,7 +419,7 @@ public final class MadokuItem {
 			Path toolDirectory = itemsDirectory.resolve(TOOL_ITEMS_FOLDER_NAME);
 			Path armorDirectory = itemsDirectory.resolve(ARMOR_ITEMS_FOLDER_NAME);
 
-			Map<String, JsonObject> normalizedFuel = DynamicStaticSystem.ensureManagedFolder(
+			Map<String, JsonObject> normalizedFuel = JSONFormatManager.ensureManagedFolder(
 				fuelDirectory,
 				MadokuItemConfig.buildDefaultFuelFileDefaults(),
 				MadokuItem::buildDynamicFuelDefaultsForFile,
@@ -366,7 +427,7 @@ public final class MadokuItem {
 				null
 			);
 
-			Map<String, JsonObject> normalizedMisc = DynamicStaticSystem.ensureManagedFolder(
+			Map<String, JsonObject> normalizedMisc = JSONFormatManager.ensureManagedFolder(
 				miscDirectory,
 				MadokuItemConfig.buildDefaultMiscFileDefaults(),
 				MadokuItem::buildDynamicMiscDefaultsForFile,
@@ -374,7 +435,7 @@ public final class MadokuItem {
 				null
 			);
 
-			Map<String, JsonObject> normalizedTool = DynamicStaticSystem.ensureManagedFolder(
+			Map<String, JsonObject> normalizedTool = JSONFormatManager.ensureManagedFolder(
 				toolDirectory,
 				MadokuItemConfig.buildDefaultToolsCategoryFileDefaults(),
 				MadokuItem::buildDynamicToolDefaultsForFile,
@@ -382,7 +443,7 @@ public final class MadokuItem {
 				MadokuItem::normalizeToolDynamicEntry
 			);
 
-			Map<String, JsonObject> normalizedArmor = DynamicStaticSystem.ensureManagedFolder(
+			Map<String, JsonObject> normalizedArmor = JSONFormatManager.ensureManagedFolder(
 				armorDirectory,
 				MadokuItemConfig.buildDefaultArmorFileDefaults(),
 				MadokuItem::buildDynamicArmorDefaultsForFile,
@@ -399,7 +460,6 @@ public final class MadokuItem {
 				categoriesByItem = Map.of();
 				toolCategoryItems = Set.of();
 				armorCategoryItems = Set.of();
-				emitConfigLoaded();
 				return;
 			}
 
@@ -413,7 +473,6 @@ public final class MadokuItem {
 				toolCategoryEnabled,
 				armorCategoryEnabled
 			);
-			emitConfigLoaded();
 		} catch (IOException | RuntimeException exception) {
 			enabled = false;
 			fuelTicksByItem = Map.of();
@@ -780,24 +839,6 @@ public final class MadokuItem {
 		return dominantCategory;
 	}
 
-	private static void emitConfigLoaded() {
-		String metricId = "item.config_loaded";
-		if (!MadokuDebug.shouldEmit(MadokuDebug.Domain.ITEM, metricId)) {
-			return;
-		}
-
-		MadokuDebug.event(metricId, MadokuDebug.Domain.ITEM)
-			.side(MadokuDebug.Side.SERVER)
-			.subject("item:global")
-			.field("enabled", enabled)
-			.field("fuel_items", fuelTicksByItem.size())
-			.field("single_stack_items", countSingleStackItems())
-			.field("category_items", countCategoryItems())
-			.field("tool_items", toolProfilesByItem.size())
-			.field("armor_items", armorProfilesByItem.size())
-			.log();
-	}
-
 	private static MadokuToolProfile parseToolProfile(JsonObject root) {
 		Integer durability = readOptionalInt(root, MadokuItemConfig.FIELD_DURABILITY, MadokuItemConfig.TOOL_INT_UNSET);
 		if (durability != null && durability <= 0) {
@@ -1026,16 +1067,6 @@ public final class MadokuItem {
 			return StackMode.MULTI;
 		}
 		return fallback;
-	}
-
-	private static long countSingleStackItems() {
-		return stackModesByItem.values().stream().filter(mode -> mode == StackMode.SINGLE).count();
-	}
-
-	private static long countCategoryItems() {
-		return categoriesByItem.values().stream()
-			.filter(categories -> categories != null && !categories.isEmpty())
-			.count();
 	}
 
 	private static boolean isSpearItemId(String itemId) {
