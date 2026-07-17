@@ -1,8 +1,8 @@
 package madoku.craft.items.rarity;
 
 import com.google.gson.JsonObject;
-import madoku.craft.config.StaticJsonSystem;
-import madoku.craft.debug.MadokuDebug;
+import madoku.craft.api.json.JSONFormatManager;
+import madoku.craft.api.json.MadokuJSONManager;
 import madoku.craft.items.item.system.MadokuItem;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
@@ -13,7 +13,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.EquipmentSlotGroup;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -54,14 +54,13 @@ public final class MadokuRarity {
 		JsonObject defaults = MadokuRarityConfig.buildDefaults();
 
 		try {
-			Path directory = StaticJsonSystem.getOrCreateGlobalSystemDirectory(RARITY_CONFIG_FOLDER_NAME);
+			Path directory = MadokuJSONManager.getOrCreateGlobalSystemDirectory(RARITY_CONFIG_FOLDER_NAME);
 			Path configFile = resolveJsonFile(directory, RARITY_CONFIG_FILE_NAME);
-			JsonObject normalized = StaticJsonSystem.ensureManagedFile(configFile, defaults);
+			JsonObject normalized = JSONFormatManager.ensureManagedFile(configFile, defaults);
 			boolean changed = config.update(normalized);
 			if (changed) {
-				StaticJsonSystem.writeManagedFile(configFile, normalized, defaults);
+				JSONFormatManager.writeManagedFile(configFile, normalized, defaults);
 			}
-			emitConfigLoaded();
 		} catch (IOException | RuntimeException exception) {
 			config.enabled = false;
 			LOGGER.error("Failed to load MadokuRarity config; disabling rarity.", exception);
@@ -119,6 +118,19 @@ public final class MadokuRarity {
 
 		RandomSource random = randomSource != null ? randomSource : RandomSource.create();
 		rollAndApplySingle(random, stack);
+	}
+
+	public static void applyConfiguredRarity(ItemStack stack, MadokuRarityTier rarity) {
+		if (!isEnabled() || stack == null || stack.isEmpty() || rarity == null) {
+			return;
+		}
+		if (!MadokuItem.isRarityCategoryItem(stack)) {
+			return;
+		}
+		if (detectAppliedRarity(stack) != null) {
+			return;
+		}
+		applyRarityToStack(stack, rarity);
 	}
 
 	public static void deliverCraftExtras(ServerPlayer player, List<ItemStack> extras) {
@@ -366,13 +378,11 @@ public final class MadokuRarity {
 
 	private static boolean isScaledAttackDamage(ItemAttributeModifiers.Entry entry, AttributeModifier modifier) {
 		return isMainHandAddValue(entry, modifier)
-			&& modifier.id().equals(Item.BASE_ATTACK_DAMAGE_ID)
 			&& isAttribute(entry, Attributes.ATTACK_DAMAGE);
 	}
 
 	private static boolean isScaledAttackSpeed(ItemAttributeModifiers.Entry entry, AttributeModifier modifier) {
 		return isMainHandAddValue(entry, modifier)
-			&& modifier.id().equals(Item.BASE_ATTACK_SPEED_ID)
 			&& isAttribute(entry, Attributes.ATTACK_SPEED);
 	}
 
@@ -387,7 +397,7 @@ public final class MadokuRarity {
 	}
 
 	private static boolean isMainHandAddValue(ItemAttributeModifiers.Entry entry, AttributeModifier modifier) {
-		return entry.slot() == EquipmentSlotGroup.MAINHAND
+		return entry.slot().test(EquipmentSlot.MAINHAND)
 			&& isAddValueModifier(modifier);
 	}
 
@@ -400,7 +410,7 @@ public final class MadokuRarity {
 	}
 
 	private static void scaleMiningSpeed(ItemStack stack, double multiplier) {
-		Tool current = getResolvedComponent(stack, DataComponents.TOOL);
+		Tool current = stack.get(DataComponents.TOOL);
 		if (current == null) {
 			return;
 		}
@@ -461,8 +471,8 @@ public final class MadokuRarity {
 
 		int rgb = color.getValue();
 		for (MadokuRarityTier rarity : MadokuRarityTier.values()) {
-			Integer rarityColor = rarity.color().getColor();
-			if (rarityColor != null && rarityColor == rgb) {
+			int rarityColor = TextColor.fromLegacyFormat(rarity.color()).getValue();
+			if (rarityColor == rgb) {
 				return rarity;
 			}
 		}
@@ -508,23 +518,4 @@ public final class MadokuRarity {
 		return directory.resolve(withExtension);
 	}
 
-	private static void emitConfigLoaded() {
-		String metricId = "rarity.config_loaded";
-		if (!MadokuDebug.shouldEmit(MadokuDebug.Domain.ITEM, metricId)) {
-			return;
-		}
-
-		MadokuDebug.event(metricId, MadokuDebug.Domain.ITEM)
-			.side(MadokuDebug.Side.SERVER)
-			.subject("rarity:global")
-			.field("enabled", config.enabled)
-			.field("common_weight", config.commonChanceWeight)
-			.field("rare_weight", config.rareChanceWeight)
-			.field("epic_weight", config.epicChanceWeight)
-			.field("mythic_weight", config.mythicChanceWeight)
-			.field("rare_buff_percent", config.rareStatBuffPercent)
-			.field("epic_buff_percent", config.epicStatBuffPercent)
-			.field("mythic_buff_percent", config.mythicStatBuffPercent)
-			.log();
-	}
 }

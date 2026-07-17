@@ -1,9 +1,8 @@
 package madoku.craft.items;
 
-import madoku.craft.config.StaticJsonSystem;
-import madoku.craft.debug.MadokuDebug;
 import madoku.craft.items.item.system.MadokuItem;
 import madoku.craft.items.itemstack.system.MadokuItemStack;
+import madoku.craft.items.network.ItemProfileSync;
 import madoku.craft.items.rarity.MadokuRarity;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -17,18 +16,19 @@ public class MadokuCraftItems implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		StaticJsonSystem.initialize();
-		MadokuDebug.initialize();
 		MadokuItem.initialize();
+		ItemProfileSync.initialize();
 		MadokuRarity.initialize();
 		MadokuItemStack.initialize();
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+			MadokuItem.reset();
 			MadokuItemStack.reset();
 			MadokuItemStack.loadPersistedData(server);
-			MadokuItem.onServerStarted();
+			MadokuItem.onServerStarted(server);
 		});
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
 			MadokuItemStack.savePersistedData(server);
+			MadokuItem.reset();
 			MadokuItemStack.reset();
 		});
 		ServerTickEvents.END_SERVER_TICK.register(server -> {

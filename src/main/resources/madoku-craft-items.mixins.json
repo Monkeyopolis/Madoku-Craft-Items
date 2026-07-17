@@ -7,7 +7,6 @@
     "ContainerStackLimitMixin",
     "CraftingMenuRarityMixin",
     "FuelValuesMixin",
-    "FurnaceMenuMixin",
     "InventoryMenuRarityMixin",
     "ItemComponentsAccessor",
     "ItemInputRarityMixin",

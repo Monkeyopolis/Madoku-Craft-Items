@@ -56,7 +56,7 @@ public abstract class GuiGraphicsRarityOverlayMixin {
 		}
 
 		boolean managedRarityItem = MadokuItem.isRarityCategoryItem(stack);
-		GuiGraphics context = (GuiGraphics) (Object) this;
+			GuiGraphics context = (GuiGraphics) (Object) this;
 
 		if (managedRarityItem && stack.isBarVisible()) {
 			drawTopDurabilityBar(context, stack, x, y);
