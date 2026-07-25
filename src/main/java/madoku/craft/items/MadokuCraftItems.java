@@ -27,7 +27,6 @@ public class MadokuCraftItems implements ModInitializer {
 			MadokuItem.onServerStarted(server);
 		});
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
-			MadokuItemStack.savePersistedData(server);
 			MadokuItem.reset();
 			MadokuItemStack.reset();
 		});
