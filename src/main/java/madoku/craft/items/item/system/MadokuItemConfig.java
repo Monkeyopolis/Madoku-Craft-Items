@@ -2,6 +2,7 @@ package madoku.craft.items.item.system;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import madoku.craft.api.json.MadokuJSONManager;
 
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -221,7 +222,7 @@ public final class MadokuItemConfig {
 
 	public static JsonObject buildBaseDefaults(String itemId, String stackValue, CategoryWeight... categories) {
 		JsonObject defaults = new JsonObject();
-		defaults.addProperty(FIELD_ITEM_ID, itemId == null ? "" : itemId);
+		defaults.addProperty(FIELD_ITEM_ID, MadokuJSONManager.normalizeRegistryIdentifierForJson(itemId));
 		defaults.add(FIELD_CATEGORY, buildCategoryArray(categories));
 		defaults.addProperty(FIELD_STACK, normalizeStackValue(stackValue));
 		return defaults;
