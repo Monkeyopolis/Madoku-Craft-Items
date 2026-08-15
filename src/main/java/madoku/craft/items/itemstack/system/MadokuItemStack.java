@@ -217,102 +217,94 @@ public final class MadokuItemStack {
 		}
 
 		JsonElement keptElement = data.get(DATA_KEPT_STACKS_KEY);
-		if (keptElement == null || !keptElement.isJsonArray()) {
+		if (keptElement == null || !keptElement.isJsonObject()) {
 			return;
 		}
 
 		RegistryOps<JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE, server.registryAccess());
-		for (JsonElement rawPlayerEntry : keptElement.getAsJsonArray()) {
-			if (rawPlayerEntry == null || !rawPlayerEntry.isJsonObject()) {
+		for (Map.Entry<String, JsonElement> playerEntry : keptElement.getAsJsonObject().entrySet()) {
+			loadPersistedPlayerStacks(ops, playerEntry.getKey(), playerEntry.getValue());
+		}
+	}
+
+	private static void loadPersistedPlayerStacks(RegistryOps<JsonElement> ops, String playerIdValue, JsonElement listElement) {
+		if (ops == null || playerIdValue == null || listElement == null || !listElement.isJsonArray()) {
+			return;
+		}
+
+		UUID playerId;
+		try {
+			playerId = UUID.fromString(playerIdValue);
+		} catch (IllegalArgumentException ignored) {
+			return;
+		}
+
+		List<KeptStack> keptStacks = new ArrayList<>();
+		for (JsonElement rawEntry : listElement.getAsJsonArray()) {
+			if (rawEntry == null || !rawEntry.isJsonObject()) {
 				continue;
 			}
-			JsonObject playerEntry = rawPlayerEntry.getAsJsonObject();
-			JsonElement playerIdElement = playerEntry.get("uuid");
-			if (playerIdElement == null || !playerIdElement.isJsonPrimitive()) {
+			JsonObject entryObject = rawEntry.getAsJsonObject();
+			JsonElement slotElement = entryObject.get(DATA_ENTRY_SLOT_KEY);
+			JsonElement stackElement = entryObject.get(DATA_ENTRY_STACK_KEY);
+			if (slotElement == null || !slotElement.isJsonPrimitive() || !slotElement.getAsJsonPrimitive().isNumber()) {
 				continue;
 			}
-			UUID playerId;
-			try {
-				playerId = UUID.fromString(playerIdElement.getAsString());
-			} catch (RuntimeException ignored) {
+			if (stackElement == null) {
 				continue;
 			}
 
-			JsonElement listElement = playerEntry.get("stacks");
-			if (listElement == null || !listElement.isJsonArray()) {
+			int slot = slotElement.getAsInt();
+			DataResult<ItemStack> decoded = ItemStack.CODEC.parse(ops, stackElement);
+			ItemStack stack = decoded.result().orElse(ItemStack.EMPTY);
+			if (stack.isEmpty()) {
 				continue;
 			}
+			keptStacks.add(new KeptStack(slot, stack));
+		}
 
-			List<KeptStack> keptStacks = new ArrayList<>();
-			for (JsonElement rawEntry : listElement.getAsJsonArray()) {
-				if (rawEntry == null || !rawEntry.isJsonObject()) {
-					continue;
-				}
-				JsonObject entryObject = rawEntry.getAsJsonObject();
-				JsonElement slotElement = entryObject.get(DATA_ENTRY_SLOT_KEY);
-				JsonElement stackElement = entryObject.get(DATA_ENTRY_STACK_KEY);
-				if (slotElement == null || !slotElement.isJsonPrimitive() || !slotElement.getAsJsonPrimitive().isNumber()) {
-					continue;
-				}
-				if (stackElement == null) {
-					continue;
-				}
-
-				int slot = slotElement.getAsInt();
-				DataResult<ItemStack> decoded = ItemStack.CODEC.parse(ops, stackElement);
-				ItemStack stack = decoded.result().orElse(ItemStack.EMPTY);
-				if (stack.isEmpty()) {
-					continue;
-				}
-				keptStacks.add(new KeptStack(slot, stack));
-			}
-
-			if (!keptStacks.isEmpty()) {
-				keptStacksByPlayer.put(playerId, keptStacks);
-			}
+		if (!keptStacks.isEmpty()) {
+			keptStacksByPlayer.put(playerId, keptStacks);
 		}
 	}
 
 	private static JsonObject toPersistedData(MinecraftServer server) {
-		JsonArray keptEntries = new JsonArray();
-		if (server == null) {
-			return JSONFormatManager.object().put(DATA_KEPT_STACKS_KEY, keptEntries).build();
-		}
-
-		RegistryOps<JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE, server.registryAccess());
-		for (Map.Entry<UUID, List<KeptStack>> entry : keptStacksByPlayer.entrySet()) {
-			UUID playerId = entry.getKey();
-			List<KeptStack> keptStacks = entry.getValue();
-			if (playerId == null || keptStacks == null || keptStacks.isEmpty()) {
-				continue;
-			}
-
-			JsonArray encodedStacks = new JsonArray();
-			for (KeptStack keptStack : keptStacks) {
-				if (keptStack == null || keptStack.stack() == null || keptStack.stack().isEmpty()) {
-					continue;
-				}
-				DataResult<JsonElement> encoded = ItemStack.CODEC.encodeStart(ops, keptStack.stack());
-				JsonElement stackElement = encoded.result().orElse(null);
-				if (stackElement == null) {
+		JSONFormatManager.ObjectBuilder keptRoot = JSONFormatManager.object();
+		if (server != null) {
+			RegistryOps<JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE, server.registryAccess());
+			for (Map.Entry<UUID, List<KeptStack>> entry : keptStacksByPlayer.entrySet()) {
+				UUID playerId = entry.getKey();
+				List<KeptStack> keptStacks = entry.getValue();
+				if (playerId == null || keptStacks == null || keptStacks.isEmpty()) {
 					continue;
 				}
 
-				JsonObject encodedEntry = new JsonObject();
-				encodedEntry.addProperty(DATA_ENTRY_SLOT_KEY, keptStack.slot());
-				encodedEntry.add(DATA_ENTRY_STACK_KEY, stackElement);
-				encodedStacks.add(encodedEntry);
-			}
+				JSONFormatManager.ArrayBuilder encodedStacks = JSONFormatManager.array();
+				for (KeptStack keptStack : keptStacks) {
+					if (keptStack == null || keptStack.stack() == null || keptStack.stack().isEmpty()) {
+						continue;
+					}
+					DataResult<JsonElement> encoded = ItemStack.CODEC.encodeStart(ops, keptStack.stack());
+					JsonElement stackElement = encoded.result().orElse(null);
+					if (stackElement == null) {
+						continue;
+					}
 
-			if (encodedStacks.size() > 0) {
-				keptEntries.add(JSONFormatManager.object()
-					.put("uuid", playerId.toString())
-					.put("stacks", encodedStacks)
-					.build());
+					encodedStacks.object(encodedEntry -> encodedEntry
+						.put(DATA_ENTRY_SLOT_KEY, keptStack.slot())
+						.put(DATA_ENTRY_STACK_KEY, stackElement));
+				}
+
+				JsonArray encodedArray = encodedStacks.build();
+				if (!encodedArray.isEmpty()) {
+					keptRoot.put(playerId.toString(), encodedArray);
+				}
 			}
 		}
 
-		return JSONFormatManager.object().put(DATA_KEPT_STACKS_KEY, keptEntries).build();
+		return JSONFormatManager.object()
+			.put(DATA_KEPT_STACKS_KEY, keptRoot.build())
+			.build();
 	}
 
 	private static void loadStaticConfig() {
