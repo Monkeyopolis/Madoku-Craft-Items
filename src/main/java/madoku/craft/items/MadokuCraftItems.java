@@ -1,12 +1,8 @@
 package madoku.craft.items;
 
-import madoku.craft.items.item.system.MadokuItem;
-import madoku.craft.items.itemstack.system.MadokuItemStack;
-import madoku.craft.items.network.ItemProfileSync;
-import madoku.craft.items.rarity.MadokuRarity;
+import madoku.craft.api.rarity.MadokuRarityManager;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,23 +12,17 @@ public class MadokuCraftItems implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		MadokuItem.initialize();
-		ItemProfileSync.initialize();
-		MadokuRarity.initialize();
-		MadokuItemStack.initialize();
+		MadokuItemsManager.initialize();
+		MadokuRarityManager.setRarityItemPredicate(ItemsCategoriesManager::isRarityCategoryItem);
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-			MadokuItem.reset();
-			MadokuItemStack.reset();
-			MadokuItemStack.loadPersistedData(server);
-			MadokuItem.onServerStarted(server);
+			// The API resets shared runtime state before each server; restore its rarity runtime.
+			MadokuRarityManager.initialize();
+			MadokuItemsManager.reset();
+			MadokuItemsManager.onServerStarted(server);
 		});
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
-			MadokuItem.reset();
-			MadokuItemStack.reset();
+			MadokuItemsManager.reset();
 		});
-		ServerTickEvents.END_SERVER_TICK.register(server -> {
-			MadokuItemStack.autosavePersistedData(server);
-		});
-		LOGGER.info("Initialized {} item, stack, and rarity systems", MOD_ID);
+		LOGGER.info("Initialized {} item and stack systems", MOD_ID);
 	}
 }

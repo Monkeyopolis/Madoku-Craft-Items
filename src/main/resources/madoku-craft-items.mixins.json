@@ -5,22 +5,14 @@
   "mixins": [
     "AbstractFurnaceFuelDurationMixin",
     "ContainerStackLimitMixin",
-    "CraftingMenuRarityMixin",
     "FuelValuesMixin",
-    "InventoryMenuRarityMixin",
     "ItemBuiltInRegistryHolderAccessor",
     "ItemComponentsAccessor",
-    "ItemInputRarityMixin",
     "ItemStackCodecMixin",
     "ItemStackDurabilityLoreMixin",
-    "ItemStackMaxSizeMixin",
-    "LootTableRarityMixin",
-    "PlayerInventoryDeathDropMixin",
-    "ResultSlotRarityMixin",
-    "SmithingTransformRecipeRarityMixin"
+    "ItemStackMaxSizeMixin"
   ],
   "client": [
-    "client.GuiGraphicsRarityOverlayMixin",
     "client.GuiGraphicsStackCountMixin"
   ],
   "injectors": {

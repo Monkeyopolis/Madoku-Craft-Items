@@ -1,7 +1,5 @@
 package madoku.craft.items;
 
-import madoku.craft.items.item.system.MadokuItem;
-import madoku.craft.items.network.ItemProfileSyncPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -16,10 +14,10 @@ public class MadokuCraftItemsClient implements ClientModInitializer {
 				return;
 			}
 			configuredItemMetadataApplied = true;
-			MadokuItem.applyConfiguredItemMetadata();
+			ItemsCategoriesManager.applyConfiguredItemMetadata();
 		});
-		ClientPlayNetworking.registerGlobalReceiver(ItemProfileSyncPayload.TYPE, (payload, context) ->
-			context.client().execute(() -> MadokuItem.applySynchronizedProfiles(payload.snapshot()))
+		ClientPlayNetworking.registerGlobalReceiver(ItemsPayloadManager.TYPE, (payload, context) ->
+			context.client().execute(() -> ItemsCategoriesManager.applySynchronizedProfiles(payload.snapshot()))
 		);
 	}
 }

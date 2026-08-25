@@ -1,6 +1,6 @@
 package madoku.craft.items.mixin;
 
-import madoku.craft.items.item.system.MadokuItem;
+import madoku.craft.items.ItemsCategoriesManager;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
 import net.minecraft.world.level.block.entity.FuelValues;
@@ -18,7 +18,7 @@ public abstract class AbstractFurnaceFuelDurationMixin {
 		CallbackInfoReturnable<Integer> cir
 	) {
 		int original = cir.getReturnValue();
-		int adjusted = MadokuItem.adjustFuelTicks(stack, original);
+		int adjusted = ItemsCategoriesManager.adjustFuelTicks(stack, original);
 		if (adjusted != original) {
 			cir.setReturnValue(adjusted);
 		}
