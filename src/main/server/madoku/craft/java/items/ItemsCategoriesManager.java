@@ -1688,7 +1688,7 @@ public final class ItemsCategoriesManager {
 	}
 
 	private static double roundArmorValue(double value) {
-		return roundIncrement(value, 0.125D);
+		return roundIncrement(value, 0.1D);
 	}
 
 	private static double roundIncrement(double value, double increment) {

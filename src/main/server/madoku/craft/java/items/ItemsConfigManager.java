@@ -532,8 +532,8 @@ public final class ItemsConfigManager {
 		Map<String, JsonObject> defaults = new LinkedHashMap<>();
 		String[] materials = {"leather", "chainmail", "copper", "iron", "golden", "diamond", "netherite"};
 		int[] durability = {64, 160, 320, 640, 960, 1600, 2048};
-		double[] armor = {0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0};
-		double[] toughness = {0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0};
+		double[] armor = {0.6, 0.75, 0.9, 1.05, 1.2, 1.35, 1.5};
+		double[] toughness = {0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
 		String[] pieces = {"helmet", "chestplate", "leggings", "boots"};
 
 		for (int materialIndex = 0; materialIndex < materials.length; materialIndex++) {
