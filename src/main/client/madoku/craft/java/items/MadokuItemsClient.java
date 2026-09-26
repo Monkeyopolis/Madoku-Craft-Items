@@ -13,6 +13,7 @@ public final class MadokuItemsClient {
 	public static void initialize() {
 		if (initialized) return;
 		initialized = true;
+		ItemMenuClient.initialize();
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (metadataApplied || client.level == null) return;
 			metadataApplied = true;

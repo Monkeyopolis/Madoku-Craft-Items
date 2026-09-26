@@ -7,7 +7,7 @@ import com.google.gson.JsonPrimitive;
 import madoku.craft.java.core.json.JSONFormatAPIManager;
 
 public final class StacksConfigManager {
-	public static final int DEFAULT_STACK_LIMIT = 128;
+	public static final int DEFAULT_STACK_LIMIT = 512;
 	public static final long MAX_STACK_CAP = 999_000_000L;
 	public static final int MAX_STACK_RUNTIME_CAP = Integer.MAX_VALUE;
 	public boolean enabled = true;

@@ -13,8 +13,10 @@ public final class MadokuItemsManager {
 		ItemsAPIManager.registerProvider(new MadokuItemsProvider());
 		ItemsConfigManager.initialize();
 		ItemsCategoriesManager.initialize();
+		ItemMenuManager.initialize();
 		ItemsStacksManager.initialize();
 		MadokuItemsCoreAdapters.initialize();
+		EssenceManager.initialize();
 	}
 
 	public static void reset() {
