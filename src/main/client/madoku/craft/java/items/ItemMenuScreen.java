@@ -139,7 +139,29 @@ public final class ItemMenuScreen extends AbstractContainerScreen<ItemMenu> {
 
 		ItemStack targetItem = getMenu().slots.get(ItemMenu.UPGRADE_SLOT_START).getItem().copy();
 		ItemsCategoriesAPIManager.setItemLevel(targetItem, ItemsCategoriesAPIManager.getItemStartingLevel());
-		drawRequirement(graphics, targetItem, requirements.itemCopies(), itemX, slotY);
+		ItemStack firstRequirementItem;
+		if (ItemMenu.usesWoodLogRequirement(targetItem)) {
+			firstRequirementItem = new ItemStack(Items.OAK_LOG);
+		} else if (ItemMenu.usesStoneCobblestoneRequirement(targetItem)) {
+			firstRequirementItem = new ItemStack(Items.COBBLESTONE);
+		} else if (ItemMenu.usesChainmailIronNuggetRequirement(targetItem)) {
+			firstRequirementItem = new ItemStack(Items.IRON_NUGGET);
+		} else if (ItemMenu.usesLeatherRequirement(targetItem)) {
+			firstRequirementItem = new ItemStack(Items.LEATHER);
+		} else if (ItemMenu.usesCopperIngotRequirement(targetItem)) {
+			firstRequirementItem = new ItemStack(Items.COPPER_INGOT);
+		} else if (ItemMenu.usesIronIngotRequirement(targetItem)) {
+			firstRequirementItem = new ItemStack(Items.IRON_INGOT);
+		} else if (ItemMenu.usesGoldIngotRequirement(targetItem)) {
+			firstRequirementItem = new ItemStack(Items.GOLD_INGOT);
+		} else if (ItemMenu.usesDiamondRequirement(targetItem)) {
+			firstRequirementItem = new ItemStack(Items.DIAMOND);
+		} else if (ItemMenu.usesNetheriteScrapRequirement(targetItem)) {
+			firstRequirementItem = new ItemStack(Items.NETHERITE_SCRAP);
+		} else {
+			firstRequirementItem = targetItem;
+		}
+		drawRequirement(graphics, firstRequirementItem, requirements.itemRequirement(), itemX, slotY);
 		drawRequirement(graphics, new ItemStack(Items.EXPERIENCE_BOTTLE), requirements.experienceBottles(), bottleX, slotY);
 		drawRequirement(graphics, new ItemStack(EssenceManager.ESSENCE), requirements.essence(), essenceX, slotY);
 	}
