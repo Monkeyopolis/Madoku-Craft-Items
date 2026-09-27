@@ -90,6 +90,7 @@ public final class ItemsCategoriesManager {
 	private static final String FIELD_SYNC_ARMOR_ITEMS = "armor-items";
 	private static final String FIELD_SYNC_TOOL_PROFILES = "tool-profiles";
 	private static final String FIELD_SYNC_ARMOR_PROFILES = "armor-profiles";
+	private static final String FIELD_SYNC_ITEM_UPGRADE_INGREDIENTS = "item-upgrade-ingredients";
 	private static final String FUEL_ITEMS_FOLDER_NAME = "items-fuel";
 	private static final String OTHER_ITEMS_FOLDER_NAME = "items-other";
 	private static final String TOOL_ITEMS_FOLDER_NAME = "items-tool";
@@ -104,6 +105,7 @@ public final class ItemsCategoriesManager {
 	private static volatile Map<Item, StackMode> stackModesByItem = Map.of();
 	private static volatile Map<Item, CategoriesToolManager> toolProfilesByItem = Map.of();
 	private static volatile Map<Item, CategoriesArmorManager> armorProfilesByItem = Map.of();
+	private static volatile Map<Item, List<ItemsCategoriesAPIManager.ItemUpgradeIngredient>> itemUpgradeIngredientsByItem = Map.of();
 	private static volatile Map<Item, Set<String>> categoriesByItem = Map.of();
 	private static volatile Set<Item> toolCategoryItems = Set.of();
 	private static volatile Set<Item> weaponCategoryItems = Set.of();
@@ -117,6 +119,7 @@ public final class ItemsCategoriesManager {
 	private static Map<Item, StackMode> savedStackModesByItem = Map.of();
 	private static Map<Item, CategoriesToolManager> savedToolProfilesByItem = Map.of();
 	private static Map<Item, CategoriesArmorManager> savedArmorProfilesByItem = Map.of();
+	private static Map<Item, List<ItemsCategoriesAPIManager.ItemUpgradeIngredient>> savedItemUpgradeIngredientsByItem = Map.of();
 	private static Map<Item, Set<String>> savedCategoriesByItem = Map.of();
 	private static Set<Item> savedToolCategoryItems = Set.of();
 	private static Set<Item> savedWeaponCategoryItems = Set.of();
@@ -163,6 +166,7 @@ public final class ItemsCategoriesManager {
 		itemLevelsEnabled = true;
 		itemStartingLevel = 1;
 		itemMaximumLevel = 5;
+		itemUpgradeIngredientsByItem = Map.of();
 	}
 
 	public static void onServerTick(MinecraftServer server) {
@@ -184,6 +188,7 @@ public final class ItemsCategoriesManager {
 			.put(FIELD_SYNC_STACK_LIMIT, ItemsStacksManager.getStackLimit())
 			.put(FIELD_SYNC_TOOL_PROFILES, writeToolProfilesSnapshot(toolProfilesByItem))
 			.put(FIELD_SYNC_ARMOR_PROFILES, writeArmorProfilesSnapshot(armorProfilesByItem))
+			.put(FIELD_SYNC_ITEM_UPGRADE_INGREDIENTS, writeItemUpgradeIngredientsSnapshot(itemUpgradeIngredientsByItem))
 			.build();
 		JsonObject itemLevels = new JsonObject();
 		itemLevels.addProperty(ItemsConfigManager.FIELD_CATEGORY_ENABLED, itemLevelsEnabled);
@@ -226,6 +231,8 @@ public final class ItemsCategoriesManager {
 			Set<Item> syncedArmorItems = readItemSetSnapshot(root.get(FIELD_SYNC_ARMOR_ITEMS));
 			Map<Item, CategoriesToolManager> syncedTools = readToolProfilesSnapshot(readJsonObject(root, FIELD_SYNC_TOOL_PROFILES));
 			Map<Item, CategoriesArmorManager> syncedArmor = readArmorProfilesSnapshot(readJsonObject(root, FIELD_SYNC_ARMOR_PROFILES));
+			Map<Item, List<ItemsCategoriesAPIManager.ItemUpgradeIngredient>> syncedItemUpgradeIngredients =
+				readItemUpgradeIngredientsSnapshot(readJsonObject(root, FIELD_SYNC_ITEM_UPGRADE_INGREDIENTS));
 
 			enabled = syncedEnabled;
 			itemLevelsEnabled = syncedLevelsEnabled;
@@ -239,6 +246,7 @@ public final class ItemsCategoriesManager {
 			armorCategoryItems = Set.copyOf(syncedArmorItems);
 			toolProfilesByItem = Map.copyOf(syncedTools);
 			armorProfilesByItem = Map.copyOf(syncedArmor);
+			itemUpgradeIngredientsByItem = Map.copyOf(syncedItemUpgradeIngredients);
 			ItemsStacksManager.applySynchronizedSettings(
 				readBoolean(root, FIELD_SYNC_STACKS_ENABLED, ItemsStacksManager.isEnabled()),
 				Math.max(1, readInt(root, FIELD_SYNC_STACK_LIMIT, ItemsStacksManager.getStackLimit()))
@@ -434,6 +442,11 @@ public final class ItemsCategoriesManager {
 		return itemMaximumLevel;
 	}
 
+	public static List<ItemsCategoriesAPIManager.ItemUpgradeIngredient> getItemUpgradeIngredients(Item item) {
+		if (!enabled || item == null) return List.of();
+		return itemUpgradeIngredientsByItem.getOrDefault(item, List.of());
+	}
+
 	public static Integer getItemLevel(ItemStack stack) {
 		if (stack == null || stack.isEmpty()) {
 			return null;
@@ -492,6 +505,7 @@ public final class ItemsCategoriesManager {
 		savedStackModesByItem = stackModesByItem;
 		savedToolProfilesByItem = toolProfilesByItem;
 		savedArmorProfilesByItem = armorProfilesByItem;
+		savedItemUpgradeIngredientsByItem = itemUpgradeIngredientsByItem;
 		savedCategoriesByItem = categoriesByItem;
 		savedToolCategoryItems = toolCategoryItems;
 		savedWeaponCategoryItems = weaponCategoryItems;
@@ -513,6 +527,7 @@ public final class ItemsCategoriesManager {
 		stackModesByItem = savedStackModesByItem;
 		toolProfilesByItem = savedToolProfilesByItem;
 		armorProfilesByItem = savedArmorProfilesByItem;
+		itemUpgradeIngredientsByItem = savedItemUpgradeIngredientsByItem;
 		categoriesByItem = savedCategoriesByItem;
 		toolCategoryItems = savedToolCategoryItems;
 		weaponCategoryItems = savedWeaponCategoryItems;
@@ -748,6 +763,7 @@ public final class ItemsCategoriesManager {
 				stackModesByItem = Map.of();
 				toolProfilesByItem = Map.of();
 				armorProfilesByItem = Map.of();
+				itemUpgradeIngredientsByItem = Map.of();
 				categoriesByItem = Map.of();
 				toolCategoryItems = Set.of();
 				weaponCategoryItems = Set.of();
@@ -777,6 +793,7 @@ public final class ItemsCategoriesManager {
 			stackModesByItem = Map.of();
 			toolProfilesByItem = Map.of();
 			armorProfilesByItem = Map.of();
+			itemUpgradeIngredientsByItem = Map.of();
 			categoriesByItem = Map.of();
 			toolCategoryItems = Set.of();
 			weaponCategoryItems = Set.of();
@@ -804,6 +821,7 @@ public final class ItemsCategoriesManager {
 		Map<Item, StackMode> resolvedStackModes = new LinkedHashMap<>();
 		Map<Item, CategoriesToolManager> resolvedTools = new LinkedHashMap<>();
 		Map<Item, CategoriesArmorManager> resolvedArmor = new LinkedHashMap<>();
+		Map<Item, List<ItemsCategoriesAPIManager.ItemUpgradeIngredient>> resolvedItemUpgradeIngredients = new LinkedHashMap<>();
 		Map<Item, Set<String>> resolvedCategories = new LinkedHashMap<>();
 		Set<Item> resolvedToolCategoryItems = new LinkedHashSet<>();
 		Set<Item> resolvedWeaponCategoryItems = new LinkedHashSet<>();
@@ -886,6 +904,7 @@ public final class ItemsCategoriesManager {
 				if (isConfiguredToolProfile(profile)) {
 					resolvedTools.put(item, profile);
 				}
+				putItemUpgradeIngredients(resolvedItemUpgradeIngredients, item, root);
 			}
 		}
 
@@ -901,6 +920,7 @@ public final class ItemsCategoriesManager {
 				resolvedCategories.put(item, readCategories(root, enabledCategories));
 				CategoriesToolManager profile = parseToolProfile(root);
 				if (isConfiguredToolProfile(profile)) resolvedTools.put(item, profile);
+				putItemUpgradeIngredients(resolvedItemUpgradeIngredients, item, root);
 			}
 		}
 
@@ -925,6 +945,7 @@ public final class ItemsCategoriesManager {
 				if (isConfiguredArmorProfile(profile)) {
 					resolvedArmor.put(item, profile);
 				}
+				putItemUpgradeIngredients(resolvedItemUpgradeIngredients, item, root);
 			}
 		}
 
@@ -936,6 +957,7 @@ public final class ItemsCategoriesManager {
 			stackModesByItem = Map.copyOf(resolvedStackModes);
 			toolProfilesByItem = Map.copyOf(resolvedTools);
 			armorProfilesByItem = Map.copyOf(resolvedArmor);
+			itemUpgradeIngredientsByItem = copyItemUpgradeIngredients(resolvedItemUpgradeIngredients);
 			categoriesByItem = Map.copyOf(resolvedCategories);
 			toolCategoryItems = Set.copyOf(resolvedToolCategoryItems);
 			weaponCategoryItems = Set.copyOf(resolvedWeaponCategoryItems);
@@ -1035,6 +1057,51 @@ public final class ItemsCategoriesManager {
 			return null;
 		}
 		return BuiltInRegistries.ITEM.getValue(id);
+	}
+
+	private static void putItemUpgradeIngredients(
+		Map<Item, List<ItemsCategoriesAPIManager.ItemUpgradeIngredient>> resolved,
+		Item item,
+		JsonObject root
+	) {
+		List<ItemsCategoriesAPIManager.ItemUpgradeIngredient> ingredients = parseItemUpgradeIngredients(root);
+		if (ingredients != null && item != null) resolved.put(item, ingredients);
+	}
+
+	private static List<ItemsCategoriesAPIManager.ItemUpgradeIngredient> parseItemUpgradeIngredients(JsonObject root) {
+		if (root == null || !root.has(ItemsConfigManager.FIELD_ITEM_UPGRADE)
+			|| !root.get(ItemsConfigManager.FIELD_ITEM_UPGRADE).isJsonObject()) {
+			return null;
+		}
+		JsonObject upgrade = root.getAsJsonObject(ItemsConfigManager.FIELD_ITEM_UPGRADE);
+		JsonElement ingredientsElement = upgrade.get(ItemsConfigManager.FIELD_INGREDIENTS);
+		if (ingredientsElement == null || !ingredientsElement.isJsonArray()) return null;
+
+		List<ItemsCategoriesAPIManager.ItemUpgradeIngredient> ingredients = new ArrayList<>();
+		for (JsonElement element : ingredientsElement.getAsJsonArray()) {
+			if (element == null || !element.isJsonObject()) continue;
+			JsonObject ingredient = element.getAsJsonObject();
+			Item item = resolveItem(readString(ingredient, ItemsConfigManager.FIELD_INGREDIENT_ITEM_ID, ""));
+			if (item == null) continue;
+			int baseCost = Math.max(1, readInt(ingredient, ItemsConfigManager.FIELD_BASE_COST, 1));
+			ingredients.add(new ItemsCategoriesAPIManager.ItemUpgradeIngredient(item, baseCost));
+			if (ingredients.size() >= ItemsConfigManager.MAX_UPGRADE_INGREDIENTS) break;
+		}
+		return List.copyOf(ingredients);
+	}
+
+	private static Map<Item, List<ItemsCategoriesAPIManager.ItemUpgradeIngredient>> copyItemUpgradeIngredients(
+		Map<Item, List<ItemsCategoriesAPIManager.ItemUpgradeIngredient>> source
+	) {
+		Map<Item, List<ItemsCategoriesAPIManager.ItemUpgradeIngredient>> copy = new LinkedHashMap<>();
+		if (source != null) {
+			for (Map.Entry<Item, List<ItemsCategoriesAPIManager.ItemUpgradeIngredient>> entry : source.entrySet()) {
+				if (entry.getKey() != null && entry.getValue() != null) {
+					copy.put(entry.getKey(), List.copyOf(entry.getValue()));
+				}
+			}
+		}
+		return Map.copyOf(copy);
 	}
 
 	private static String normalizeItemId(String rawValue) {
@@ -1301,6 +1368,30 @@ public final class ItemsCategoriesManager {
 		return root;
 	}
 
+	private static JsonObject writeItemUpgradeIngredientsSnapshot(
+		Map<Item, List<ItemsCategoriesAPIManager.ItemUpgradeIngredient>> ingredientsByItem
+	) {
+		JsonObject root = new JsonObject();
+		if (ingredientsByItem == null) return root;
+		for (Map.Entry<Item, List<ItemsCategoriesAPIManager.ItemUpgradeIngredient>> entry : ingredientsByItem.entrySet()) {
+			Identifier itemId = entry.getKey() == null ? null : BuiltInRegistries.ITEM.getKey(entry.getKey());
+			if (itemId == null || entry.getValue() == null) continue;
+			JsonArray ingredients = new JsonArray();
+			for (ItemsCategoriesAPIManager.ItemUpgradeIngredient ingredient : entry.getValue()) {
+				if (ingredient == null || ingredient.item() == null) continue;
+				Identifier ingredientId = BuiltInRegistries.ITEM.getKey(ingredient.item());
+				if (ingredientId == null) continue;
+				JsonObject ingredientRoot = new JsonObject();
+				ingredientRoot.addProperty(ItemsConfigManager.FIELD_INGREDIENT_ITEM_ID,
+					JSONAPIManager.normalizeRegistryIdentifierForJson(ingredientId.toString()));
+				ingredientRoot.addProperty(ItemsConfigManager.FIELD_BASE_COST, Math.max(1, ingredient.baseCost()));
+				ingredients.add(ingredientRoot);
+			}
+			root.add(itemId.toString(), ingredients);
+		}
+		return root;
+	}
+
 	private static JsonArray writeItemSetSnapshot(Set<Item> items) {
 		JsonArray root = new JsonArray();
 		if (items == null) return root;
@@ -1429,6 +1520,30 @@ public final class ItemsCategoriesManager {
 			if (isConfiguredArmorProfile(profile)) {
 				resolved.put(item, profile);
 			}
+		}
+		return resolved;
+	}
+
+	private static Map<Item, List<ItemsCategoriesAPIManager.ItemUpgradeIngredient>> readItemUpgradeIngredientsSnapshot(JsonObject root) {
+		Map<Item, List<ItemsCategoriesAPIManager.ItemUpgradeIngredient>> resolved = new LinkedHashMap<>();
+		if (root == null) return resolved;
+		for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
+			if (entry.getValue() == null || !entry.getValue().isJsonArray()) continue;
+			Item item = resolveItem(entry.getKey());
+			if (item == null) continue;
+			List<ItemsCategoriesAPIManager.ItemUpgradeIngredient> ingredients = new ArrayList<>();
+			for (JsonElement element : entry.getValue().getAsJsonArray()) {
+				if (element == null || !element.isJsonObject()) continue;
+				JsonObject ingredientRoot = element.getAsJsonObject();
+				Item ingredient = resolveItem(readString(ingredientRoot, ItemsConfigManager.FIELD_INGREDIENT_ITEM_ID, ""));
+				if (ingredient == null) continue;
+				ingredients.add(new ItemsCategoriesAPIManager.ItemUpgradeIngredient(
+					ingredient,
+					Math.max(1, readInt(ingredientRoot, ItemsConfigManager.FIELD_BASE_COST, 1))
+				));
+				if (ingredients.size() >= ItemsConfigManager.MAX_UPGRADE_INGREDIENTS) break;
+			}
+			resolved.put(item, List.copyOf(ingredients));
 		}
 		return resolved;
 	}

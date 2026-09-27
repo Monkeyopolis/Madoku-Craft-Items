@@ -12,6 +12,10 @@ import java.util.Map;
 
 public final class ItemsConfigManager {
 	public static final String FIELD_ITEM_ID = "item-id";
+	public static final String FIELD_ITEM_UPGRADE = "item-upgrade";
+	public static final String FIELD_INGREDIENTS = "ingredients";
+	public static final String FIELD_INGREDIENT_ITEM_ID = "item-id";
+	public static final String FIELD_BASE_COST = "base-cost";
 	public static final String FIELD_ITEM_LEVELS = "item-levels";
 	public static final String FIELD_STARTING_LEVEL = "starting-level";
 	public static final String FIELD_MAXIMUM_LEVEL = "maximum-level";
@@ -25,6 +29,7 @@ public final class ItemsConfigManager {
 	public static final String FIELD_STACK = "stack";
 	public static final String STACK_SINGLE = "single";
 	public static final String STACK_MULTI = "multi";
+	public static final int MAX_UPGRADE_INGREDIENTS = 3;
 
 	public static final String CATEGORY_FUEL = "fuel";
 	public static final String CATEGORY_OTHER = "other";
@@ -263,6 +268,7 @@ public final class ItemsConfigManager {
 			.put(FIELD_ITEM_ID, JSONAPIManager.normalizeRegistryIdentifierForJson(itemId))
 			.put(FIELD_CATEGORY, buildCategoryArray(categories))
 			.put(FIELD_STACK, normalizeStackValue(stackValue))
+			.object(FIELD_ITEM_UPGRADE, upgrade -> upgrade.array(FIELD_INGREDIENTS, ignored -> { }))
 			.build();
 	}
 

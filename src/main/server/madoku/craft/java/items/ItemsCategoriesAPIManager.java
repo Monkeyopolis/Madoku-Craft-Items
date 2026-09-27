@@ -1,6 +1,7 @@
 package madoku.craft.java.items;
 
 import java.util.Set;
+import java.util.List;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
@@ -38,6 +39,7 @@ public final class ItemsCategoriesAPIManager {
 	public static boolean areItemLevelsEnabled() { return provider.areItemLevelsEnabled(); }
 	public static int getItemStartingLevel() { return provider.getItemStartingLevel(); }
 	public static int getItemMaximumLevel() { return provider.getItemMaximumLevel(); }
+	public static List<ItemUpgradeIngredient> getItemUpgradeIngredients(Item item) { return provider.getItemUpgradeIngredients(item); }
 	public static Integer getItemLevel(ItemStack stack) { return provider.getItemLevel(stack); }
 	public static void applyGeneratedItemLevel(ItemStack stack, RandomSource randomSource) { provider.applyGeneratedItemLevel(stack, randomSource); }
 	public static void applyConfiguredItemLevel(ItemStack stack, int level) { provider.applyConfiguredItemLevel(stack, level); }
@@ -49,4 +51,6 @@ public final class ItemsCategoriesAPIManager {
 	public static Set<String> getCategories(Item item) { return provider.getCategories(item); }
 	public static boolean hasCategory(Item item, String category) { return provider.hasCategory(item, category); }
 	public static boolean hasCategory(ItemStack stack, String category) { return provider.hasCategory(stack, category); }
+
+	public record ItemUpgradeIngredient(Item item, int baseCost) { }
 }

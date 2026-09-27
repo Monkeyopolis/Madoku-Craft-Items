@@ -1,6 +1,7 @@
 package madoku.craft.java.items;
 
 import java.util.Set;
+import java.util.List;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
@@ -29,6 +30,7 @@ public interface ItemsCategoriesProvider {
 	default boolean areItemLevelsEnabled() { return false; }
 	default int getItemStartingLevel() { return 1; }
 	default int getItemMaximumLevel() { return 1; }
+	default List<ItemsCategoriesAPIManager.ItemUpgradeIngredient> getItemUpgradeIngredients(Item item) { return List.of(); }
 	default Integer getItemLevel(ItemStack stack) { return null; }
 	default void applyGeneratedItemLevel(ItemStack stack, RandomSource randomSource) { }
 	default void applyConfiguredItemLevel(ItemStack stack, int level) { }

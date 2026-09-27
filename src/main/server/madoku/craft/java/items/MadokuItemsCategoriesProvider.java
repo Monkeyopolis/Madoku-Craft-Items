@@ -29,6 +29,7 @@ public final class MadokuItemsCategoriesProvider implements ItemsCategoriesProvi
 	@Override public boolean areItemLevelsEnabled() { return ItemsCategoriesManager.areItemLevelsEnabled(); }
 	@Override public int getItemStartingLevel() { return ItemsCategoriesManager.getItemStartingLevel(); }
 	@Override public int getItemMaximumLevel() { return ItemsCategoriesManager.getItemMaximumLevel(); }
+	@Override public java.util.List<ItemsCategoriesAPIManager.ItemUpgradeIngredient> getItemUpgradeIngredients(Item item) { return ItemsCategoriesManager.getItemUpgradeIngredients(item); }
 	@Override public Integer getItemLevel(ItemStack stack) { return ItemsCategoriesManager.getItemLevel(stack); }
 	@Override public void applyGeneratedItemLevel(ItemStack stack, RandomSource randomSource) { ItemsCategoriesManager.applyGeneratedItemLevel(stack, randomSource); }
 	@Override public void applyConfiguredItemLevel(ItemStack stack, int level) { ItemsCategoriesManager.applyConfiguredItemLevel(stack, level); }

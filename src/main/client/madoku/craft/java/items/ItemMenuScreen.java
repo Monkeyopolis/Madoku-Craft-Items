@@ -12,7 +12,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 
 /** Dedicated screen for item-level upgrade inputs. */
 public final class ItemMenuScreen extends AbstractContainerScreen<ItemMenu> {
@@ -137,39 +136,17 @@ public final class ItemMenuScreen extends AbstractContainerScreen<ItemMenu> {
 			return;
 		}
 
-		ItemStack targetItem = getMenu().slots.get(ItemMenu.UPGRADE_SLOT_START).getItem().copy();
-		ItemsCategoriesAPIManager.setItemLevel(targetItem, ItemsCategoriesAPIManager.getItemStartingLevel());
-		ItemStack firstRequirementItem;
-		if (ItemMenu.usesWoodLogRequirement(targetItem)) {
-			firstRequirementItem = new ItemStack(Items.OAK_LOG);
-		} else if (ItemMenu.usesStoneCobblestoneRequirement(targetItem)) {
-			firstRequirementItem = new ItemStack(Items.COBBLESTONE);
-		} else if (ItemMenu.usesChainmailIronNuggetRequirement(targetItem)) {
-			firstRequirementItem = new ItemStack(Items.IRON_NUGGET);
-		} else if (ItemMenu.usesLeatherRequirement(targetItem)) {
-			firstRequirementItem = new ItemStack(Items.LEATHER);
-		} else if (ItemMenu.usesCopperIngotRequirement(targetItem)) {
-			firstRequirementItem = new ItemStack(Items.COPPER_INGOT);
-		} else if (ItemMenu.usesIronIngotRequirement(targetItem)) {
-			firstRequirementItem = new ItemStack(Items.IRON_INGOT);
-		} else if (ItemMenu.usesGoldIngotRequirement(targetItem)) {
-			firstRequirementItem = new ItemStack(Items.GOLD_INGOT);
-		} else if (ItemMenu.usesDiamondRequirement(targetItem)) {
-			firstRequirementItem = new ItemStack(Items.DIAMOND);
-		} else if (ItemMenu.usesNetheriteScrapRequirement(targetItem)) {
-			firstRequirementItem = new ItemStack(Items.NETHERITE_SCRAP);
-		} else {
-			firstRequirementItem = targetItem;
+		int[] ingredientX = { itemX, bottleX, essenceX };
+		for (int index = 0; index < requirements.ingredients().size() && index < ingredientX.length; index++) {
+			ItemMenu.IngredientRequirement requirement = requirements.ingredients().get(index);
+			drawRequirement(graphics, new ItemStack(requirement.item()), requirement, ingredientX[index], slotY);
 		}
-		drawRequirement(graphics, firstRequirementItem, requirements.itemRequirement(), itemX, slotY);
-		drawRequirement(graphics, new ItemStack(Items.EXPERIENCE_BOTTLE), requirements.experienceBottles(), bottleX, slotY);
-		drawRequirement(graphics, new ItemStack(EssenceManager.ESSENCE), requirements.essence(), essenceX, slotY);
 	}
 
 	private void drawRequirement(
 		GuiGraphicsExtractor graphics,
 		ItemStack requiredItem,
-		ItemMenu.UpgradeRequirement requirement,
+		ItemMenu.IngredientRequirement requirement,
 		int slotX,
 		int slotY
 	) {
@@ -179,7 +156,7 @@ public final class ItemMenuScreen extends AbstractContainerScreen<ItemMenu> {
 
 	private void drawRequirementText(
 		GuiGraphicsExtractor graphics,
-		ItemMenu.UpgradeRequirement requirement,
+		ItemMenu.IngredientRequirement requirement,
 		int slotX,
 		int slotY
 	) {

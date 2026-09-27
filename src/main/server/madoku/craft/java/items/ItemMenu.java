@@ -15,6 +15,9 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /** Dedicated synchronized menu for item-level upgrades. */
 public final class ItemMenu extends AbstractContainerMenu {
 	public static final int UPGRADE_SLOT_START = 0;
@@ -56,34 +59,11 @@ public final class ItemMenu extends AbstractContainerMenu {
 		if (!isValidItem(target)) return UpgradeRequirements.empty();
 
 		int level = itemLevel(target);
-		UpgradeRequirement itemRequirement;
-		if (usesWoodLogRequirement(target)) {
-			itemRequirement = new UpgradeRequirement(countItems(ItemTags.LOGS), woodLogCost(target, level));
-		} else if (usesStoneCobblestoneRequirement(target)) {
-			itemRequirement = new UpgradeRequirement(countItems(Items.COBBLESTONE), stoneCobblestoneCost(target, level));
-		} else if (usesChainmailIronNuggetRequirement(target)) {
-			itemRequirement = new UpgradeRequirement(countItems(Items.IRON_NUGGET), stoneCobblestoneCost(target, level));
-		} else if (usesLeatherRequirement(target)) {
-			itemRequirement = new UpgradeRequirement(countItems(Items.LEATHER), leatherCost(target, level));
-		} else if (usesCopperIngotRequirement(target)) {
-			itemRequirement = new UpgradeRequirement(countItems(Items.COPPER_INGOT), copperIngotCost(target, level));
-		} else if (usesIronIngotRequirement(target)) {
-			itemRequirement = new UpgradeRequirement(countItems(Items.IRON_INGOT), ironIngotCost(target, level));
-		} else if (usesGoldIngotRequirement(target)) {
-			itemRequirement = new UpgradeRequirement(countItems(Items.GOLD_INGOT), goldIngotCost(target, level));
-		} else if (usesDiamondRequirement(target)) {
-			itemRequirement = new UpgradeRequirement(countItems(Items.DIAMOND), diamondCost(target, level));
-		} else if (usesNetheriteScrapRequirement(target)) {
-			itemRequirement = new UpgradeRequirement(countItems(Items.NETHERITE_SCRAP), netheriteScrapCost(target, level));
-		} else {
-			itemRequirement = new UpgradeRequirement(countItemCopies(target), level);
-		}
-		int experienceCost = experienceBottleCost(target, level);
-		UpgradeRequirement experienceBottles = new UpgradeRequirement(countItems(Items.EXPERIENCE_BOTTLE), experienceCost);
-		UpgradeRequirement essence = new UpgradeRequirement(countItems(EssenceManager.ESSENCE), experienceCost * 2);
+		List<IngredientRequirement> ingredients = configuredIngredients(target, level);
+		if (ingredients.isEmpty()) ingredients = legacyIngredients(target, level);
 		boolean belowMaximum = level < ItemsCategoriesAPIManager.getItemMaximumLevel();
-		boolean canUpgrade = belowMaximum && itemRequirement.isMet() && experienceBottles.isMet() && essence.isMet();
-		return new UpgradeRequirements(true, canUpgrade, itemRequirement, experienceBottles, essence);
+		boolean canUpgrade = belowMaximum && ingredients.stream().allMatch(IngredientRequirement::isMet);
+		return new UpgradeRequirements(true, canUpgrade, List.copyOf(ingredients));
 	}
 
 	/** Applies an upgrade on the server after rechecking all costs against the active player's inventory. */
@@ -95,29 +75,9 @@ public final class ItemMenu extends AbstractContainerMenu {
 
 		ItemStack target = upgradeInventory.getItem(UPGRADE_SLOT_START);
 		int nextLevel = itemLevel(target) + 1;
-		if (usesWoodLogRequirement(target)) {
-			consumeItems(ItemTags.LOGS, requirements.itemRequirement().required());
-		} else if (usesStoneCobblestoneRequirement(target)) {
-			consumeItems(Items.COBBLESTONE, requirements.itemRequirement().required());
-		} else if (usesChainmailIronNuggetRequirement(target)) {
-			consumeItems(Items.IRON_NUGGET, requirements.itemRequirement().required());
-		} else if (usesLeatherRequirement(target)) {
-			consumeItems(Items.LEATHER, requirements.itemRequirement().required());
-		} else if (usesCopperIngotRequirement(target)) {
-			consumeItems(Items.COPPER_INGOT, requirements.itemRequirement().required());
-		} else if (usesIronIngotRequirement(target)) {
-			consumeItems(Items.IRON_INGOT, requirements.itemRequirement().required());
-		} else if (usesGoldIngotRequirement(target)) {
-			consumeItems(Items.GOLD_INGOT, requirements.itemRequirement().required());
-		} else if (usesDiamondRequirement(target)) {
-			consumeItems(Items.DIAMOND, requirements.itemRequirement().required());
-		} else if (usesNetheriteScrapRequirement(target)) {
-			consumeItems(Items.NETHERITE_SCRAP, requirements.itemRequirement().required());
-		} else {
-			consumeItemCopies(target, requirements.itemRequirement().required());
+		for (IngredientRequirement ingredient : requirements.ingredients()) {
+			consumeRequirement(target, ingredient);
 		}
-		consumeItems(Items.EXPERIENCE_BOTTLE, requirements.experienceBottles().required());
-		consumeItems(EssenceManager.ESSENCE, requirements.essence().required());
 		ItemsCategoriesAPIManager.setItemLevel(target, nextLevel);
 		upgradeInventory.setChanged();
 		this.broadcastChanges();
@@ -182,6 +142,68 @@ public final class ItemMenu extends AbstractContainerMenu {
 		return count;
 	}
 
+	private List<IngredientRequirement> configuredIngredients(ItemStack target, int level) {
+		List<ItemsCategoriesAPIManager.ItemUpgradeIngredient> configured =
+			ItemsCategoriesAPIManager.getItemUpgradeIngredients(target.getItem());
+		if (configured.isEmpty()) return List.of();
+
+		List<IngredientRequirement> ingredients = new ArrayList<>();
+		for (ItemsCategoriesAPIManager.ItemUpgradeIngredient ingredient : configured) {
+			if (ingredient == null || ingredient.item() == null) continue;
+			boolean duplicate = ingredient.item() == target.getItem();
+			int owned = duplicate ? countItemCopies(target) : countItems(ingredient.item());
+			ingredients.add(new IngredientRequirement(
+				ingredient.item(),
+				null,
+				duplicate,
+				owned,
+				scaledCost(ingredient.baseCost(), level)
+			));
+		}
+		return ingredients;
+	}
+
+	private List<IngredientRequirement> legacyIngredients(ItemStack target, int level) {
+		List<IngredientRequirement> ingredients = new ArrayList<>();
+		if (usesWoodLogRequirement(target)) {
+			ingredients.add(new IngredientRequirement(Items.OAK_LOG, ItemTags.LOGS, false,
+				countItems(ItemTags.LOGS), woodLogCost(target, level)));
+		} else if (usesStoneCobblestoneRequirement(target)) {
+			ingredients.add(new IngredientRequirement(Items.COBBLESTONE, null, false,
+				countItems(Items.COBBLESTONE), stoneCobblestoneCost(target, level)));
+		} else if (usesChainmailIronNuggetRequirement(target)) {
+			ingredients.add(new IngredientRequirement(Items.IRON_NUGGET, null, false,
+				countItems(Items.IRON_NUGGET), stoneCobblestoneCost(target, level)));
+		} else if (usesLeatherRequirement(target)) {
+			ingredients.add(new IngredientRequirement(Items.LEATHER, null, false,
+				countItems(Items.LEATHER), leatherCost(target, level)));
+		} else if (usesCopperIngotRequirement(target)) {
+			ingredients.add(new IngredientRequirement(Items.COPPER_INGOT, null, false,
+				countItems(Items.COPPER_INGOT), copperIngotCost(target, level)));
+		} else if (usesIronIngotRequirement(target)) {
+			ingredients.add(new IngredientRequirement(Items.IRON_INGOT, null, false,
+				countItems(Items.IRON_INGOT), ironIngotCost(target, level)));
+		} else if (usesGoldIngotRequirement(target)) {
+			ingredients.add(new IngredientRequirement(Items.GOLD_INGOT, null, false,
+				countItems(Items.GOLD_INGOT), goldIngotCost(target, level)));
+		} else if (usesDiamondRequirement(target)) {
+			ingredients.add(new IngredientRequirement(Items.DIAMOND, null, false,
+				countItems(Items.DIAMOND), diamondCost(target, level)));
+		} else if (usesNetheriteScrapRequirement(target)) {
+			ingredients.add(new IngredientRequirement(Items.NETHERITE_SCRAP, null, false,
+				countItems(Items.NETHERITE_SCRAP), netheriteScrapCost(target, level)));
+		} else {
+			ingredients.add(new IngredientRequirement(target.getItem(), null, true,
+				countItemCopies(target), level));
+		}
+		int experienceCost = experienceBottleCost(target, level);
+		ingredients.add(new IngredientRequirement(Items.EXPERIENCE_BOTTLE, null, false,
+			countItems(Items.EXPERIENCE_BOTTLE), experienceCost));
+		ingredients.add(new IngredientRequirement(EssenceManager.ESSENCE, null, false,
+			countItems(EssenceManager.ESSENCE), experienceCost * 2));
+		return ingredients;
+	}
+
 	private Slot displayOnlySlot(int inventoryIndex, int x, int y) {
 		return new Slot(upgradeInventory, inventoryIndex, x, y) {
 			@Override public boolean mayPlace(ItemStack stack) { return false; }
@@ -213,6 +235,16 @@ public final class ItemMenu extends AbstractContainerMenu {
 			&& isValidItem(stack)
 			&& sameRarity(stack, target)
 			&& itemLevel(stack) == startingLevel);
+	}
+
+	private void consumeRequirement(ItemStack target, IngredientRequirement ingredient) {
+		if (ingredient.duplicate()) {
+			consumeItemCopies(target, ingredient.required());
+		} else if (ingredient.tag() != null) {
+			consumeItems(ingredient.tag(), ingredient.required());
+		} else {
+			consumeItems(ingredient.item(), ingredient.required());
+		}
 	}
 
 	private void consumeItems(Item item, int amount) {
@@ -296,6 +328,12 @@ public final class ItemMenu extends AbstractContainerMenu {
 		int startingLevel = ItemsCategoriesAPIManager.getItemStartingLevel();
 		int levelStep = Math.max(1, level - startingLevel + 1);
 		return baseStep * (levelStep + rarityIndex(target));
+	}
+
+	private static int scaledCost(int baseCost, int level) {
+		int startingLevel = ItemsCategoriesAPIManager.getItemStartingLevel();
+		long scaled = (long) Math.max(1, baseCost) * Math.max(1, level - startingLevel + 1);
+		return (int) Math.min(Integer.MAX_VALUE, scaled);
 	}
 
 	private static int rarityExperienceStep(ItemStack target) {
@@ -401,7 +439,7 @@ public final class ItemMenu extends AbstractContainerMenu {
 		return 0;
 	}
 
-	public record UpgradeRequirement(int owned, int required) {
+	public record IngredientRequirement(Item item, TagKey<Item> tag, boolean duplicate, int owned, int required) {
 		public boolean isMet() { return owned >= required; }
 		public String displayText() { return owned + "/" + required; }
 	}
@@ -409,13 +447,10 @@ public final class ItemMenu extends AbstractContainerMenu {
 	public record UpgradeRequirements(
 		boolean hasTarget,
 		boolean canUpgrade,
-		UpgradeRequirement itemRequirement,
-		UpgradeRequirement experienceBottles,
-		UpgradeRequirement essence
+		List<IngredientRequirement> ingredients
 	) {
 		private static UpgradeRequirements empty() {
-			UpgradeRequirement emptyRequirement = new UpgradeRequirement(0, 0);
-			return new UpgradeRequirements(false, false, emptyRequirement, emptyRequirement, emptyRequirement);
+			return new UpgradeRequirements(false, false, List.of());
 		}
 	}
 }
