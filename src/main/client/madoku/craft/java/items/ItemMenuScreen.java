@@ -21,8 +21,6 @@ public final class ItemMenuScreen extends AbstractContainerScreen<ItemMenu> {
 		texture("shared-ui/pickaxe-slot.png"),
 		texture("shared-ui/sword-slot.png")
 	};
-	private static final Identifier BOTTLE_SLOT_TEXTURE = texture("shared-ui/bottle-slot.png");
-	private static final Identifier ESSENCE_SLOT_TEXTURE = texture("shared-ui/essence-slot.png");
 	private static final Identifier UPGRADE_TEXTURE = texture("shared-ui/upgrade-button.png");
 	private static final Identifier UPGRADE_HIGHLIGHTED_TEXTURE = texture("shared-ui/upgrade-button-highlighted.png");
 	private static final Identifier EXIT_TEXTURE = texture("shared-ui/exit-button.png");
@@ -130,9 +128,6 @@ public final class ItemMenuScreen extends AbstractContainerScreen<ItemMenu> {
 		int essenceX = ItemMenu.ESSENCE_REQUIREMENT_SLOT_X;
 		int slotY = ItemMenu.REQUIREMENT_SLOT_Y;
 		if (!requirements.hasTarget()) {
-			blitSlotIcon(graphics, itemPlaceholderTexture(), itemX, slotY);
-			blitSlotIcon(graphics, BOTTLE_SLOT_TEXTURE, bottleX - 1, slotY - 1);
-			blitSlotIcon(graphics, ESSENCE_SLOT_TEXTURE, essenceX, slotY);
 			return;
 		}
 

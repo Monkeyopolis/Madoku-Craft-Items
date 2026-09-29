@@ -1,6 +1,7 @@
 package madoku.craft.java.items;
 
 import madoku.craft.java.core.rarity.RarityAPIManager;
+import madoku.craft.java.core.upgrade.UpgradeCostFeatureAPIManager;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.ItemTags;
@@ -152,12 +153,16 @@ public final class ItemMenu extends AbstractContainerMenu {
 			if (ingredient == null || ingredient.item() == null) continue;
 			boolean duplicate = ingredient.item() == target.getItem();
 			int owned = duplicate ? countItemCopies(target) : countItems(ingredient.item());
+			int required = scaledCost(ingredient.baseCost(), level);
+			if (ingredient.item() == Items.EXPERIENCE_BOTTLE) {
+				required = UpgradeCostFeatureAPIManager.adjustExperienceBottleCost(required);
+			}
 			ingredients.add(new IngredientRequirement(
 				ingredient.item(),
 				null,
 				duplicate,
 				owned,
-				scaledCost(ingredient.baseCost(), level)
+				required
 			));
 		}
 		return ingredients;
@@ -196,11 +201,12 @@ public final class ItemMenu extends AbstractContainerMenu {
 			ingredients.add(new IngredientRequirement(target.getItem(), null, true,
 				countItemCopies(target), level));
 		}
-		int experienceCost = experienceBottleCost(target, level);
+		int baseExperienceCost = experienceBottleCost(target, level);
+		int experienceCost = UpgradeCostFeatureAPIManager.adjustExperienceBottleCost(baseExperienceCost);
 		ingredients.add(new IngredientRequirement(Items.EXPERIENCE_BOTTLE, null, false,
 			countItems(Items.EXPERIENCE_BOTTLE), experienceCost));
 		ingredients.add(new IngredientRequirement(EssenceManager.ESSENCE, null, false,
-			countItems(EssenceManager.ESSENCE), experienceCost * 2));
+			countItems(EssenceManager.ESSENCE), baseExperienceCost * 2));
 		return ingredients;
 	}
 
