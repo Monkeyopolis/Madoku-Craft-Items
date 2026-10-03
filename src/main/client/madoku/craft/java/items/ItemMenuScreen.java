@@ -23,6 +23,7 @@ public final class ItemMenuScreen extends AbstractContainerScreen<ItemMenu> {
 	};
 	private static final Identifier UPGRADE_TEXTURE = texture("shared-ui/upgrade-button.png");
 	private static final Identifier UPGRADE_HIGHLIGHTED_TEXTURE = texture("shared-ui/upgrade-button-highlighted.png");
+	private static final Identifier UPGRADE_LOCKED_TEXTURE = texture("shared-ui/upgrade-button-locked.png");
 	private static final Identifier EXIT_TEXTURE = texture("shared-ui/exit-button.png");
 	private static final Identifier EXIT_HIGHLIGHTED_TEXTURE = texture("shared-ui/exit-button-highlighted.png");
 	private static final int PANEL_WIDTH = 176;
@@ -68,9 +69,12 @@ public final class ItemMenuScreen extends AbstractContainerScreen<ItemMenu> {
 
 		boolean upgradeHovered = requirements.canUpgrade()
 			&& contains(leftPos + UPGRADE_BUTTON_X, topPos + UPGRADE_BUTTON_Y, UPGRADE_BUTTON_WIDTH, UPGRADE_BUTTON_HEIGHT, mouseX, mouseY);
+		Identifier upgradeTexture = !requirements.canUpgrade()
+			? UPGRADE_LOCKED_TEXTURE
+			: upgradeHovered ? UPGRADE_HIGHLIGHTED_TEXTURE : UPGRADE_TEXTURE;
 		graphics.blit(
 			RenderPipelines.GUI_TEXTURED,
-			upgradeHovered ? UPGRADE_HIGHLIGHTED_TEXTURE : UPGRADE_TEXTURE,
+			upgradeTexture,
 			leftPos + UPGRADE_BUTTON_X,
 			topPos + UPGRADE_BUTTON_Y,
 			0.0F,

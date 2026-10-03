@@ -60,10 +60,12 @@ public final class ItemMenu extends AbstractContainerMenu {
 		if (!isValidItem(target)) return UpgradeRequirements.empty();
 
 		int level = itemLevel(target);
+		if (level >= ItemsCategoriesAPIManager.getItemMaximumLevel()) {
+			return new UpgradeRequirements(true, false, List.of());
+		}
 		List<IngredientRequirement> ingredients = configuredIngredients(target, level);
 		if (ingredients.isEmpty()) ingredients = legacyIngredients(target, level);
-		boolean belowMaximum = level < ItemsCategoriesAPIManager.getItemMaximumLevel();
-		boolean canUpgrade = belowMaximum && ingredients.stream().allMatch(IngredientRequirement::isMet);
+		boolean canUpgrade = ingredients.stream().allMatch(IngredientRequirement::isMet);
 		return new UpgradeRequirements(true, canUpgrade, List.copyOf(ingredients));
 	}
 

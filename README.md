@@ -25,7 +25,7 @@ The type of modifications an item can receive is based on their category.
 **Stacking Limit:**
 
 - Item Stacking limit is adjustable.
-- By default, stacking limit was increased to 128 from 64 items per ptack.
+- By default, stacking limit was increased to 512 from 64 items per ptack.
 - The stacking limit can be increased up to 999 million items per stack in the config files.
 
 **Item Rarity:**
@@ -37,6 +37,7 @@ The type of modifications an item can receive is based on their category.
 **Item Level:**
 
 - The level system increases an item's stats based on the item's level.
-- An item's level can be increased through the smithing table.
+- An item's level can be increased through the items menu.
+- You can open up the main menu by pressing Tab.
 - The level system only applies to items in the armor, tool, and weapon categories.
-- To level up an item, it requires a duplicate item of the same level/rarity and experience bottles.
+- To level up an item, it requires materials, essence and experience bottles.
