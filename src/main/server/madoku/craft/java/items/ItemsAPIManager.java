@@ -12,6 +12,7 @@ public final class ItemsAPIManager {
 	public static final String CATEGORY_TOOL = "tool";
 	public static final String CATEGORY_WEAPON = "weapon";
 	public static final String CATEGORY_ARMOR = "armor";
+	public static final String CATEGORY_FOOD = "food";
 	private static final ItemsProvider UNAVAILABLE_PROVIDER = new ItemsProvider() { };
 	private static volatile ItemsProvider provider = UNAVAILABLE_PROVIDER;
 

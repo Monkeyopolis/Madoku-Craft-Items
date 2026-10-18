@@ -34,6 +34,8 @@ public final class ItemsCategoriesAPIManager {
 	public static boolean isArmorCategoryItem(Item item) { return provider.isArmorCategoryItem(item); }
 	public static boolean isArmorCategoryItem(ItemStack stack) { return provider.isArmorCategoryItem(stack); }
 	public static boolean isWeaponCategoryItem(Item item) { return provider.isWeaponCategoryItem(item); }
+	public static boolean isFoodCategoryItem(Item item) { return provider.isFoodCategoryItem(item); }
+	public static boolean isFoodCategoryItem(ItemStack stack) { return provider.isFoodCategoryItem(stack); }
 	public static boolean isRarityCategoryItem(Item item) { return provider.isRarityCategoryItem(item); }
 	public static boolean isRarityCategoryItem(ItemStack stack) { return provider.isRarityCategoryItem(stack); }
 	public static boolean areItemLevelsEnabled() { return provider.areItemLevelsEnabled(); }

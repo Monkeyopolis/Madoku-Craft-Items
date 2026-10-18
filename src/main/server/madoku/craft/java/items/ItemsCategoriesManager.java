@@ -31,13 +31,20 @@ import net.minecraft.world.entity.EquipmentSlotGroup;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.AttackRange;
+import net.minecraft.world.item.component.Consumable;
+import net.minecraft.world.item.component.Consumables;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.item.component.Tool;
+import net.minecraft.world.item.consume_effects.ApplyStatusEffectsConsumeEffect;
+import net.minecraft.world.item.consume_effects.ConsumeEffect;
 import net.minecraft.world.level.block.Block;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +52,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -53,6 +61,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.StreamSupport;
 import net.minecraft.nbt.CompoundTag;
 
@@ -88,11 +97,14 @@ public final class ItemsCategoriesManager {
 	private static final String FIELD_SYNC_TOOL_ITEMS = "tool-items";
 	private static final String FIELD_SYNC_WEAPON_ITEMS = "weapon-items";
 	private static final String FIELD_SYNC_ARMOR_ITEMS = "armor-items";
+	private static final String FIELD_SYNC_FOOD_ITEMS = "food-items";
 	private static final String FIELD_SYNC_TOOL_PROFILES = "tool-profiles";
 	private static final String FIELD_SYNC_ARMOR_PROFILES = "armor-profiles";
+	private static final String FIELD_SYNC_FOOD_PROFILES = "food-profiles";
 	private static final String FIELD_SYNC_ITEM_UPGRADE_INGREDIENTS = "item-upgrade-ingredients";
 	private static final String FUEL_ITEMS_FOLDER_NAME = "items-fuel";
 	private static final String OTHER_ITEMS_FOLDER_NAME = "items-other";
+	private static final String FOOD_ITEMS_FOLDER_NAME = "items-food";
 	private static final String TOOL_ITEMS_FOLDER_NAME = "items-tool";
 	private static final String WEAPON_ITEMS_FOLDER_NAME = "items-weapon";
 	private static final String ARMOR_ITEMS_FOLDER_NAME = "items-armor";
@@ -105,11 +117,13 @@ public final class ItemsCategoriesManager {
 	private static volatile Map<Item, StackMode> stackModesByItem = Map.of();
 	private static volatile Map<Item, CategoriesToolManager> toolProfilesByItem = Map.of();
 	private static volatile Map<Item, CategoriesArmorManager> armorProfilesByItem = Map.of();
+	private static volatile Map<Item, CategoriesFoodManager.FoodProfile> foodProfilesByItem = Map.of();
 	private static volatile Map<Item, List<ItemsCategoriesAPIManager.ItemUpgradeIngredient>> itemUpgradeIngredientsByItem = Map.of();
 	private static volatile Map<Item, Set<String>> categoriesByItem = Map.of();
 	private static volatile Set<Item> toolCategoryItems = Set.of();
 	private static volatile Set<Item> weaponCategoryItems = Set.of();
 	private static volatile Set<Item> armorCategoryItems = Set.of();
+	private static volatile Set<Item> foodCategoryItems = Set.of();
 	private static volatile boolean clientSynchronized;
 	private static boolean savedEnabled;
 	private static boolean savedItemLevelsEnabled;
@@ -119,12 +133,15 @@ public final class ItemsCategoriesManager {
 	private static Map<Item, StackMode> savedStackModesByItem = Map.of();
 	private static Map<Item, CategoriesToolManager> savedToolProfilesByItem = Map.of();
 	private static Map<Item, CategoriesArmorManager> savedArmorProfilesByItem = Map.of();
+	private static Map<Item, CategoriesFoodManager.FoodProfile> savedFoodProfilesByItem = Map.of();
 	private static Map<Item, List<ItemsCategoriesAPIManager.ItemUpgradeIngredient>> savedItemUpgradeIngredientsByItem = Map.of();
 	private static Map<Item, Set<String>> savedCategoriesByItem = Map.of();
 	private static Set<Item> savedToolCategoryItems = Set.of();
 	private static Set<Item> savedWeaponCategoryItems = Set.of();
 	private static Set<Item> savedArmorCategoryItems = Set.of();
+	private static Set<Item> savedFoodCategoryItems = Set.of();
 	private static Map<Item, DataComponentMap> savedClientComponents = Map.of();
+	private static final Set<UUID> NORMALIZED_FOOD_PLAYERS = new HashSet<>();
 	private static volatile long nextPlayerTick = Long.MIN_VALUE;
 
 	private ItemsCategoriesManager() {
@@ -142,6 +159,8 @@ public final class ItemsCategoriesManager {
 	}
 
 	public static void onServerStarted(MinecraftServer server) {
+		NORMALIZED_FOOD_PLAYERS.clear();
+		loadStaticConfig();
 		applyConfiguredItemMetadata();
 		nextPlayerTick = Long.MIN_VALUE;
 	}
@@ -150,23 +169,27 @@ public final class ItemsCategoriesManager {
 		if (!enabled) {
 			return;
 		}
-		if (toolProfilesByItem.isEmpty() && armorProfilesByItem.isEmpty()) {
+		if (toolProfilesByItem.isEmpty() && armorProfilesByItem.isEmpty() && foodProfilesByItem.isEmpty()) {
 			return;
 		}
 		captureClientComponents(toolProfilesByItem.keySet());
 		captureClientComponents(armorProfilesByItem.keySet());
+		captureClientComponents(foodProfilesByItem.keySet());
 		applyToolProfiles(toolProfilesByItem);
 		applyArmorProfiles(armorProfilesByItem);
+		applyFoodProfiles(foodProfilesByItem);
 	}
 
 	public static void reset() {
 		nextPlayerTick = Long.MIN_VALUE;
+		NORMALIZED_FOOD_PLAYERS.clear();
 		AdaptiveIntervalAPIManager.clearSystem(ITEM_PLAYER_TICK_SYSTEM_ID);
 		savedClientComponents = Map.of();
 		itemLevelsEnabled = true;
 		itemStartingLevel = 1;
 		itemMaximumLevel = 5;
 		itemUpgradeIngredientsByItem = Map.of();
+		foodProfilesByItem = Map.of();
 	}
 
 	public static void onServerTick(MinecraftServer server) {
@@ -188,6 +211,7 @@ public final class ItemsCategoriesManager {
 			.put(FIELD_SYNC_STACK_LIMIT, ItemsStacksManager.getStackLimit())
 			.put(FIELD_SYNC_TOOL_PROFILES, writeToolProfilesSnapshot(toolProfilesByItem))
 			.put(FIELD_SYNC_ARMOR_PROFILES, writeArmorProfilesSnapshot(armorProfilesByItem))
+			.put(FIELD_SYNC_FOOD_PROFILES, writeFoodProfilesSnapshot(foodProfilesByItem))
 			.put(FIELD_SYNC_ITEM_UPGRADE_INGREDIENTS, writeItemUpgradeIngredientsSnapshot(itemUpgradeIngredientsByItem))
 			.build();
 		JsonObject itemLevels = new JsonObject();
@@ -201,6 +225,7 @@ public final class ItemsCategoriesManager {
 		snapshot.add(FIELD_SYNC_TOOL_ITEMS, writeItemSetSnapshot(toolCategoryItems));
 		snapshot.add(FIELD_SYNC_WEAPON_ITEMS, writeItemSetSnapshot(weaponCategoryItems));
 		snapshot.add(FIELD_SYNC_ARMOR_ITEMS, writeItemSetSnapshot(armorCategoryItems));
+		snapshot.add(FIELD_SYNC_FOOD_ITEMS, writeItemSetSnapshot(foodCategoryItems));
 		return snapshot.toString();
 	}
 
@@ -229,8 +254,10 @@ public final class ItemsCategoriesManager {
 			Set<Item> syncedToolItems = readItemSetSnapshot(root.get(FIELD_SYNC_TOOL_ITEMS));
 			Set<Item> syncedWeaponItems = readItemSetSnapshot(root.get(FIELD_SYNC_WEAPON_ITEMS));
 			Set<Item> syncedArmorItems = readItemSetSnapshot(root.get(FIELD_SYNC_ARMOR_ITEMS));
+			Set<Item> syncedFoodItems = readItemSetSnapshot(root.get(FIELD_SYNC_FOOD_ITEMS));
 			Map<Item, CategoriesToolManager> syncedTools = readToolProfilesSnapshot(readJsonObject(root, FIELD_SYNC_TOOL_PROFILES));
 			Map<Item, CategoriesArmorManager> syncedArmor = readArmorProfilesSnapshot(readJsonObject(root, FIELD_SYNC_ARMOR_PROFILES));
+			Map<Item, CategoriesFoodManager.FoodProfile> syncedFood = readFoodProfilesSnapshot(readJsonObject(root, FIELD_SYNC_FOOD_PROFILES));
 			Map<Item, List<ItemsCategoriesAPIManager.ItemUpgradeIngredient>> syncedItemUpgradeIngredients =
 				readItemUpgradeIngredientsSnapshot(readJsonObject(root, FIELD_SYNC_ITEM_UPGRADE_INGREDIENTS));
 
@@ -244,8 +271,10 @@ public final class ItemsCategoriesManager {
 			toolCategoryItems = Set.copyOf(syncedToolItems);
 			weaponCategoryItems = Set.copyOf(syncedWeaponItems);
 			armorCategoryItems = Set.copyOf(syncedArmorItems);
+			foodCategoryItems = Set.copyOf(syncedFoodItems);
 			toolProfilesByItem = Map.copyOf(syncedTools);
 			armorProfilesByItem = Map.copyOf(syncedArmor);
+			foodProfilesByItem = Map.copyOf(syncedFood);
 			itemUpgradeIngredientsByItem = Map.copyOf(syncedItemUpgradeIngredients);
 			ItemsStacksManager.applySynchronizedSettings(
 				readBoolean(root, FIELD_SYNC_STACKS_ENABLED, ItemsStacksManager.isEnabled()),
@@ -256,8 +285,10 @@ public final class ItemsCategoriesManager {
 			if (enabled) {
 				captureClientComponents(toolProfilesByItem.keySet());
 				captureClientComponents(armorProfilesByItem.keySet());
+				captureClientComponents(foodProfilesByItem.keySet());
 				applyToolProfiles(toolProfilesByItem);
 				applyArmorProfiles(armorProfilesByItem);
+				applyFoodProfiles(foodProfilesByItem);
 			}
 		} catch (RuntimeException exception) {
 			LOGGER.error("Failed to apply synchronized item profiles.", exception);
@@ -305,18 +336,75 @@ public final class ItemsCategoriesManager {
 		if (!enabled || player == null) {
 			return;
 		}
-		if (toolCategoryItems.isEmpty() && weaponCategoryItems.isEmpty() && armorCategoryItems.isEmpty()) {
+		if (toolCategoryItems.isEmpty() && weaponCategoryItems.isEmpty()
+			&& armorCategoryItems.isEmpty() && foodCategoryItems.isEmpty()) {
 			return;
 		}
+
+		boolean normalizedFoodStacks = normalizeManagedFoodStacksOnce(player);
 		if (gameplayTick % PLAYER_COMPONENT_SYNC_INTERVAL_TICKS != 0L) {
+			if (normalizedFoodStacks) {
+				player.getInventory().setChanged();
+				player.containerMenu.broadcastChanges();
+			}
 			return;
 		}
 		if (!syncInventoryComponents(player)) {
+			if (normalizedFoodStacks) {
+				player.getInventory().setChanged();
+				player.containerMenu.broadcastChanges();
+			}
 			return;
 		}
 
 		player.getInventory().setChanged();
 		player.containerMenu.broadcastChanges();
+	}
+
+	private static boolean normalizeManagedFoodStacksOnce(ServerPlayer player) {
+		if (player == null || !NORMALIZED_FOOD_PLAYERS.add(player.getUUID())) {
+			return false;
+		}
+
+		boolean changed = false;
+		for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+			changed |= normalizeManagedFoodStack(player.getInventory().getItem(slot));
+		}
+		changed |= normalizeManagedFoodStack(player.containerMenu.getCarried());
+		return changed;
+	}
+
+	private static boolean normalizeManagedFoodStack(ItemStack stack) {
+		if (stack == null || stack.isEmpty() || !isFoodCategoryItem(stack.getItem())) {
+			return false;
+		}
+
+		DataComponentMap prototype = stack.getPrototype();
+		if (prototype == null) {
+			return false;
+		}
+
+		boolean changed = false;
+		changed |= replaceComponentFromPrototype(stack, prototype, DataComponents.FOOD);
+		changed |= replaceComponentFromPrototype(stack, prototype, DataComponents.CONSUMABLE);
+		return changed;
+	}
+
+	private static <T> boolean replaceComponentFromPrototype(
+		ItemStack stack,
+		DataComponentMap prototype,
+		DataComponentType<T> componentType
+	) {
+		if (stack == null || prototype == null || componentType == null) {
+			return false;
+		}
+
+		T prototypeValue = prototype.get(componentType);
+		if (prototypeValue == null || Objects.equals(stack.get(componentType), prototypeValue)) {
+			return false;
+		}
+		stack.set(componentType, prototypeValue);
+		return true;
 	}
 
 	private static boolean syncInventoryComponents(ServerPlayer player) {
@@ -343,7 +431,8 @@ public final class ItemsCategoriesManager {
 		Item item = stack.getItem();
 		boolean syncTool = isToolCategoryItem(item) || isWeaponCategoryItem(item);
 		boolean syncArmor = isArmorCategoryItem(item);
-		if (!syncTool && !syncArmor) {
+		boolean syncFood = isFoodCategoryItem(item);
+		if (!syncTool && !syncArmor && !syncFood) {
 			return false;
 		}
 
@@ -360,6 +449,10 @@ public final class ItemsCategoriesManager {
 		if (syncTool || syncArmor) {
 			syncComponentFromPrototype(stack, prototype, DataComponents.ATTRIBUTE_MODIFIERS);
 			syncComponentFromPrototype(stack, prototype, DataComponents.MAX_DAMAGE);
+		}
+		if (syncFood) {
+			syncComponentFromPrototype(stack, prototype, DataComponents.FOOD);
+			syncComponentFromPrototype(stack, prototype, DataComponents.CONSUMABLE);
 		}
 
 		return hashBefore != ItemStack.hashItemAndComponents(stack);
@@ -417,6 +510,20 @@ public final class ItemsCategoriesManager {
 			return false;
 		}
 		return weaponCategoryItems.contains(item) || hasCategory(item, ItemsConfigManager.CATEGORY_WEAPON);
+	}
+
+	public static boolean isFoodCategoryItem(Item item) {
+		if (!enabled || item == null) {
+			return false;
+		}
+		return foodCategoryItems.contains(item) || hasCategory(item, ItemsConfigManager.CATEGORY_FOOD);
+	}
+
+	public static boolean isFoodCategoryItem(ItemStack stack) {
+		if (stack == null || stack.isEmpty()) {
+			return false;
+		}
+		return isFoodCategoryItem(stack.getItem());
 	}
 
 	public static boolean isRarityCategoryItem(Item item) {
@@ -505,11 +612,13 @@ public final class ItemsCategoriesManager {
 		savedStackModesByItem = stackModesByItem;
 		savedToolProfilesByItem = toolProfilesByItem;
 		savedArmorProfilesByItem = armorProfilesByItem;
+		savedFoodProfilesByItem = foodProfilesByItem;
 		savedItemUpgradeIngredientsByItem = itemUpgradeIngredientsByItem;
 		savedCategoriesByItem = categoriesByItem;
 		savedToolCategoryItems = toolCategoryItems;
 		savedWeaponCategoryItems = weaponCategoryItems;
 		savedArmorCategoryItems = armorCategoryItems;
+		savedFoodCategoryItems = foodCategoryItems;
 	}
 
 	public static void resetClientSynchronizedState() {
@@ -527,11 +636,13 @@ public final class ItemsCategoriesManager {
 		stackModesByItem = savedStackModesByItem;
 		toolProfilesByItem = savedToolProfilesByItem;
 		armorProfilesByItem = savedArmorProfilesByItem;
+		foodProfilesByItem = savedFoodProfilesByItem;
 		itemUpgradeIngredientsByItem = savedItemUpgradeIngredientsByItem;
 		categoriesByItem = savedCategoriesByItem;
 		toolCategoryItems = savedToolCategoryItems;
 		weaponCategoryItems = savedWeaponCategoryItems;
 		armorCategoryItems = savedArmorCategoryItems;
+		foodCategoryItems = savedFoodCategoryItems;
 		clientSynchronized = false;
 		savedClientComponents = Map.of();
 		ItemsStacksManager.resetClientSynchronizedSettings();
@@ -706,12 +817,14 @@ public final class ItemsCategoriesManager {
 			boolean armorCategoryEnabled = readCategoryEnabled(settingsRoot, ItemsConfigManager.FIELD_ARMOR_CATEGORY);
 			boolean toolCategoryEnabled = readCategoryEnabled(settingsRoot, ItemsConfigManager.FIELD_TOOL_CATEGORY);
 			boolean weaponCategoryEnabled = readCategoryEnabled(settingsRoot, ItemsConfigManager.FIELD_WEAPON_CATEGORY);
+			boolean foodCategoryEnabled = readCategoryEnabled(settingsRoot, ItemsConfigManager.FIELD_FOOD_CATEGORY);
 			boolean fuelCategoryEnabled = readCategoryEnabled(settingsRoot, ItemsConfigManager.FIELD_FUEL_CATEGORY);
 			boolean otherCategoryEnabled = readCategoryEnabled(settingsRoot, ItemsConfigManager.FIELD_OTHER_CATEGORY);
 
 			Path itemsDirectory = rootDirectory.resolve(ITEM_CONFIG_ITEMS_FOLDER_NAME);
 			Path fuelDirectory = itemsDirectory.resolve(FUEL_ITEMS_FOLDER_NAME);
 			Path otherDirectory = itemsDirectory.resolve(OTHER_ITEMS_FOLDER_NAME);
+			Path foodDirectory = itemsDirectory.resolve(FOOD_ITEMS_FOLDER_NAME);
 			Path toolDirectory = itemsDirectory.resolve(TOOL_ITEMS_FOLDER_NAME);
 			Path weaponDirectory = itemsDirectory.resolve(WEAPON_ITEMS_FOLDER_NAME);
 			Path armorDirectory = itemsDirectory.resolve(ARMOR_ITEMS_FOLDER_NAME);
@@ -729,6 +842,14 @@ public final class ItemsCategoriesManager {
 				ItemsConfigManager.buildDefaultOtherFileDefaults(),
 				ItemsCategoriesManager::buildDynamicOtherDefaultsForFile,
 				ItemsCategoriesManager::isSupportedOtherItemFile,
+				null
+			);
+
+			Map<String, JsonObject> normalizedFood = JSONFormatAPIManager.ensureManagedFolder(
+				foodDirectory,
+				ItemsConfigManager.buildDefaultFoodFileDefaults(),
+				ItemsCategoriesManager::buildDynamicFoodDefaultsForFile,
+				ItemsCategoriesManager::isSupportedFoodItemFile,
 				null
 			);
 
@@ -763,22 +884,26 @@ public final class ItemsCategoriesManager {
 				stackModesByItem = Map.of();
 				toolProfilesByItem = Map.of();
 				armorProfilesByItem = Map.of();
+				foodProfilesByItem = Map.of();
 				itemUpgradeIngredientsByItem = Map.of();
 				categoriesByItem = Map.of();
 				toolCategoryItems = Set.of();
 				weaponCategoryItems = Set.of();
 				armorCategoryItems = Set.of();
+				foodCategoryItems = Set.of();
 				return;
 			}
 
 			applyResolvedData(
 				normalizedFuel,
 				normalizedOther,
+				normalizedFood,
 				normalizedTool,
 				normalizedWeapon,
 				normalizedArmor,
 				fuelCategoryEnabled,
 				otherCategoryEnabled,
+				foodCategoryEnabled,
 				toolCategoryEnabled,
 				weaponCategoryEnabled,
 				armorCategoryEnabled,
@@ -793,11 +918,13 @@ public final class ItemsCategoriesManager {
 			stackModesByItem = Map.of();
 			toolProfilesByItem = Map.of();
 			armorProfilesByItem = Map.of();
+			foodProfilesByItem = Map.of();
 			itemUpgradeIngredientsByItem = Map.of();
 			categoriesByItem = Map.of();
 			toolCategoryItems = Set.of();
 			weaponCategoryItems = Set.of();
 			armorCategoryItems = Set.of();
+			foodCategoryItems = Set.of();
 			LOGGER.error("Failed to load ItemsCategoriesManager folder config; disabling custom item rules.", exception);
 		}
 	}
@@ -805,11 +932,13 @@ public final class ItemsCategoriesManager {
 	private static void applyResolvedData(
 		Map<String, JsonObject> normalizedFuelFiles,
 		Map<String, JsonObject> normalizedOtherFiles,
+		Map<String, JsonObject> normalizedFoodFiles,
 		Map<String, JsonObject> normalizedToolFiles,
 		Map<String, JsonObject> normalizedWeaponFiles,
 		Map<String, JsonObject> normalizedArmorFiles,
 		boolean fuelCategoryEnabled,
 		boolean otherCategoryEnabled,
+		boolean foodCategoryEnabled,
 		boolean toolCategoryEnabled,
 		boolean weaponCategoryEnabled,
 		boolean armorCategoryEnabled,
@@ -821,17 +950,22 @@ public final class ItemsCategoriesManager {
 		Map<Item, StackMode> resolvedStackModes = new LinkedHashMap<>();
 		Map<Item, CategoriesToolManager> resolvedTools = new LinkedHashMap<>();
 		Map<Item, CategoriesArmorManager> resolvedArmor = new LinkedHashMap<>();
+		Map<Item, CategoriesFoodManager.FoodProfile> resolvedFood = new LinkedHashMap<>();
 		Map<Item, List<ItemsCategoriesAPIManager.ItemUpgradeIngredient>> resolvedItemUpgradeIngredients = new LinkedHashMap<>();
 		Map<Item, Set<String>> resolvedCategories = new LinkedHashMap<>();
 		Set<Item> resolvedToolCategoryItems = new LinkedHashSet<>();
 		Set<Item> resolvedWeaponCategoryItems = new LinkedHashSet<>();
 		Set<Item> resolvedArmorCategoryItems = new LinkedHashSet<>();
+		Set<Item> resolvedFoodCategoryItems = new LinkedHashSet<>();
 		Set<String> enabledCategories = new LinkedHashSet<>();
 		if (fuelCategoryEnabled) {
 			enabledCategories.add(ItemsConfigManager.CATEGORY_FUEL);
 		}
 		if (otherCategoryEnabled) {
 			enabledCategories.add(ItemsConfigManager.CATEGORY_OTHER);
+		}
+		if (foodCategoryEnabled) {
+			enabledCategories.add(ItemsConfigManager.CATEGORY_FOOD);
 		}
 		if (toolCategoryEnabled) {
 			enabledCategories.add(ItemsConfigManager.CATEGORY_TOOL);
@@ -880,6 +1014,29 @@ public final class ItemsCategoriesManager {
 
 				resolvedStackModes.put(item, readStackMode(root, StackMode.MULTI));
 				resolvedCategories.put(item, readCategories(root, enabledCategories));
+			}
+		}
+
+		if (foodCategoryEnabled) {
+			for (Map.Entry<String, JsonObject> entry : normalizedFoodFiles.entrySet()) {
+				JsonObject root = entry.getValue();
+				if (root == null) {
+					continue;
+				}
+
+				String itemId = resolveItemId(entry.getKey(), root);
+				Item item = resolveItem(itemId);
+				if (item == null) {
+					continue;
+				}
+
+				resolvedFoodCategoryItems.add(item);
+				resolvedStackModes.put(item, readStackMode(root, StackMode.MULTI));
+				resolvedCategories.put(item, readCategories(root, enabledCategories));
+				CategoriesFoodManager.FoodProfile profile = parseFoodProfile(root);
+				if (profile != null) {
+					resolvedFood.put(item, profile);
+				}
 			}
 		}
 
@@ -957,11 +1114,13 @@ public final class ItemsCategoriesManager {
 			stackModesByItem = Map.copyOf(resolvedStackModes);
 			toolProfilesByItem = Map.copyOf(resolvedTools);
 			armorProfilesByItem = Map.copyOf(resolvedArmor);
+			foodProfilesByItem = Map.copyOf(resolvedFood);
 			itemUpgradeIngredientsByItem = copyItemUpgradeIngredients(resolvedItemUpgradeIngredients);
 			categoriesByItem = Map.copyOf(resolvedCategories);
 			toolCategoryItems = Set.copyOf(resolvedToolCategoryItems);
 			weaponCategoryItems = Set.copyOf(resolvedWeaponCategoryItems);
 			armorCategoryItems = Set.copyOf(resolvedArmorCategoryItems);
+			foodCategoryItems = Set.copyOf(resolvedFoodCategoryItems);
 		}
 
 	private static JsonObject buildDynamicFuelDefaultsForFile(String fileKey) {
@@ -989,6 +1148,14 @@ public final class ItemsCategoriesManager {
 			itemId = "minecraft:" + normalizeFileKey(fileKey);
 		}
 		return ItemsConfigManager.buildOtherItemDefaults(itemId, ItemsConfigManager.STACK_MULTI);
+	}
+
+	private static JsonObject buildDynamicFoodDefaultsForFile(String fileKey) {
+		String itemId = resolveItemId(fileKey, null);
+		if (itemId == null) {
+			itemId = "minecraft:" + normalizeFileKey(fileKey);
+		}
+		return ItemsConfigManager.buildFoodItemDefaults(itemId, 0, ItemsConfigManager.STACK_MULTI);
 	}
 
 	private static JsonObject buildDynamicWeaponDefaultsForFile(String fileKey) {
@@ -1020,6 +1187,10 @@ public final class ItemsCategoriesManager {
 
 	private static boolean isSupportedOtherItemFile(String fileKey, JsonObject sourceRoot) {
 		return isSupportedItemFileForCategory(fileKey, sourceRoot, ItemsConfigManager.CATEGORY_OTHER);
+	}
+
+	private static boolean isSupportedFoodItemFile(String fileKey, JsonObject sourceRoot) {
+		return isSupportedItemFileForCategory(fileKey, sourceRoot, ItemsConfigManager.CATEGORY_FOOD);
 	}
 
 	private static boolean isSupportedArmorItemFile(String fileKey, JsonObject sourceRoot) {
@@ -1243,6 +1414,7 @@ public final class ItemsCategoriesManager {
 			ItemsConfigManager.CATEGORY_ARMOR,
 			ItemsConfigManager.CATEGORY_TOOL,
 			ItemsConfigManager.CATEGORY_WEAPON,
+			ItemsConfigManager.CATEGORY_FOOD,
 			ItemsConfigManager.CATEGORY_FUEL,
 			ItemsConfigManager.CATEGORY_OTHER
 		));
@@ -1298,6 +1470,53 @@ public final class ItemsCategoriesManager {
 		Double armor = readOptionalDouble(root, ItemsConfigManager.FIELD_ARMOR, ItemsConfigManager.TOOL_DOUBLE_UNSET);
 		Double armorToughness = readOptionalDouble(root, ItemsConfigManager.FIELD_ARMOR_TOUGHNESS, ItemsConfigManager.TOOL_DOUBLE_UNSET);
 		return new CategoriesArmorManager(durability, armor, armorToughness);
+	}
+
+	private static CategoriesFoodManager.FoodProfile parseFoodProfile(JsonObject root) {
+		int nutrition = Math.max(0, readInt(root, ItemsConfigManager.FIELD_NUTRITION, 0));
+		if (nutrition <= 0) {
+			return null;
+		}
+
+		List<CategoriesFoodManager.StatusEffect> statusEffects = new ArrayList<>();
+		JsonElement statusEffectsElement = root == null ? null : root.get(ItemsConfigManager.FIELD_STATUS_EFFECTS);
+		if (statusEffectsElement != null && statusEffectsElement.isJsonArray()) {
+			for (JsonElement element : statusEffectsElement.getAsJsonArray()) {
+				if (element == null || !element.isJsonObject()) {
+					continue;
+				}
+				JsonObject effectRoot = element.getAsJsonObject();
+				String effect = normalizeConfiguredEffectId(
+					readString(effectRoot, ItemsConfigManager.FIELD_EFFECT, "")
+				);
+				int duration = Math.max(0, readInt(effectRoot, ItemsConfigManager.FIELD_DURATION, 0));
+				double chance = readDouble(effectRoot, ItemsConfigManager.FIELD_CHANCE, 0.0D);
+				if (effect.isBlank() || duration <= 0 || !Double.isFinite(chance) || chance <= 0.0D) {
+					continue;
+				}
+				statusEffects.add(new CategoriesFoodManager.StatusEffect(
+					effect,
+					duration,
+					(float) Math.min(1.0D, chance)
+				));
+			}
+		}
+
+		return new CategoriesFoodManager.FoodProfile(nutrition, statusEffects);
+	}
+
+	private static String normalizeConfiguredEffectId(String rawEffect) {
+		String normalized = rawEffect == null ? "" : rawEffect.trim().toLowerCase(Locale.ROOT);
+		if (normalized.isBlank()) {
+			return "";
+		}
+		int namespaceSeparator = normalized.indexOf(':');
+		if (namespaceSeparator < 0) {
+			return "minecraft:" + normalized.replace('-', '_');
+		}
+		String namespace = normalized.substring(0, namespaceSeparator);
+		String path = normalized.substring(namespaceSeparator + 1).replace('-', '_');
+		return namespace + ":" + path;
 	}
 
 	private static JsonObject writeToolProfilesSnapshot(Map<Item, CategoriesToolManager> profiles) {
@@ -1428,6 +1647,39 @@ public final class ItemsCategoriesManager {
 		return root.build();
 	}
 
+	private static JsonObject writeFoodProfilesSnapshot(Map<Item, CategoriesFoodManager.FoodProfile> profiles) {
+		JSONFormatAPIManager.ObjectBuilder root = JSONFormatAPIManager.object();
+		if (profiles == null) {
+			return root.build();
+		}
+
+		for (Map.Entry<Item, CategoriesFoodManager.FoodProfile> entry : profiles.entrySet()) {
+			Item item = entry.getKey();
+			CategoriesFoodManager.FoodProfile profile = entry.getValue();
+			Identifier itemId = item == null ? null : BuiltInRegistries.ITEM.getKey(item);
+			if (itemId == null || profile == null) {
+				continue;
+			}
+
+			JsonObject profileRoot = new JsonObject();
+			profileRoot.addProperty(ItemsConfigManager.FIELD_NUTRITION, profile.nutrition());
+			JsonArray statusEffects = new JsonArray();
+			for (CategoriesFoodManager.StatusEffect effect : profile.statusEffects()) {
+				if (effect == null || effect.effect() == null || effect.effect().isBlank()) {
+					continue;
+				}
+				JsonObject effectRoot = new JsonObject();
+				effectRoot.addProperty(ItemsConfigManager.FIELD_EFFECT, effect.effect());
+				effectRoot.addProperty(ItemsConfigManager.FIELD_DURATION, effect.duration());
+				effectRoot.addProperty(ItemsConfigManager.FIELD_CHANCE, effect.chance());
+				statusEffects.add(effectRoot);
+			}
+			profileRoot.add(ItemsConfigManager.FIELD_STATUS_EFFECTS, statusEffects);
+			root.put(itemId.toString(), profileRoot);
+		}
+		return root.build();
+	}
+
 	private static JsonObject writeToolProfile(CategoriesToolManager profile) {
 		JSONFormatAPIManager.ObjectBuilder root = JSONFormatAPIManager.object();
 		if (profile == null) {
@@ -1518,6 +1770,28 @@ public final class ItemsCategoriesManager {
 
 			CategoriesArmorManager profile = parseArmorProfile(entry.getValue().getAsJsonObject());
 			if (isConfiguredArmorProfile(profile)) {
+				resolved.put(item, profile);
+			}
+		}
+		return resolved;
+	}
+
+	private static Map<Item, CategoriesFoodManager.FoodProfile> readFoodProfilesSnapshot(JsonObject root) {
+		Map<Item, CategoriesFoodManager.FoodProfile> resolved = new LinkedHashMap<>();
+		if (root == null || root.entrySet().isEmpty()) {
+			return resolved;
+		}
+
+		for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
+			if (entry == null || entry.getValue() == null || !entry.getValue().isJsonObject()) {
+				continue;
+			}
+			Item item = resolveItem(entry.getKey());
+			if (item == null) {
+				continue;
+			}
+			CategoriesFoodManager.FoodProfile profile = parseFoodProfile(entry.getValue().getAsJsonObject());
+			if (profile != null) {
 				resolved.put(item, profile);
 			}
 		}
@@ -1828,6 +2102,15 @@ public final class ItemsCategoriesManager {
 		}
 	}
 
+	private static void applyFoodProfiles(Map<Item, CategoriesFoodManager.FoodProfile> profiles) {
+		if (profiles.isEmpty()) {
+			return;
+		}
+		for (Map.Entry<Item, CategoriesFoodManager.FoodProfile> entry : profiles.entrySet()) {
+			applyFoodProfile(entry.getKey(), entry.getValue());
+		}
+	}
+
 	private static void captureClientComponents(Set<Item> items) {
 		if (items == null || items.isEmpty()) return;
 		Map<Item, DataComponentMap> captured = new LinkedHashMap<>(savedClientComponents);
@@ -1956,6 +2239,66 @@ public final class ItemsCategoriesManager {
 			((ItemComponentsAccessor) ((ItemBuiltInRegistryHolderAccessor) item).madokuCraft$getBuiltInRegistryHolder())
 				.madokuCraft$bindComponents(builder.build());
 		}
+	}
+
+	private static void applyFoodProfile(Item item, CategoriesFoodManager.FoodProfile profile) {
+		if (item == null || profile == null) {
+			return;
+		}
+
+		DataComponentMap capturedBase = savedClientComponents.get(item);
+		DataComponentMap base = capturedBase == null ? item.components() : capturedBase;
+		FoodProperties currentFood = base.get(DataComponents.FOOD);
+		Consumable currentConsumable = base.get(DataComponents.CONSUMABLE);
+		float saturation = currentFood == null ? 0.0F : currentFood.saturation();
+		boolean canAlwaysEat = currentFood != null && currentFood.canAlwaysEat();
+		FoodProperties food = new FoodProperties(profile.nutrition(), saturation, canAlwaysEat);
+
+		List<ConsumeEffect> effects = new ArrayList<>();
+		if (currentConsumable != null) {
+			effects.addAll(currentConsumable.onConsumeEffects());
+		}
+		for (CategoriesFoodManager.StatusEffect configuredEffect : profile.statusEffects()) {
+			if (configuredEffect == null) {
+				continue;
+			}
+			MobEffect effect = resolveMobEffect(configuredEffect.effect());
+			if (effect == null) {
+				LOGGER.warn("Ignoring unknown food status effect '{}'", configuredEffect.effect());
+				continue;
+			}
+			int durationTicks = (int) Math.min(Integer.MAX_VALUE, (long) configuredEffect.duration() * 20L);
+			MobEffectInstance effectInstance = new MobEffectInstance(
+				BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect),
+				durationTicks
+			);
+			effects.add(new ApplyStatusEffectsConsumeEffect(effectInstance, configuredEffect.chance()));
+		}
+
+		Consumable baseConsumable = currentConsumable == null ? Consumables.DEFAULT_FOOD : currentConsumable;
+		Consumable consumable = new Consumable(
+			baseConsumable.consumeSeconds(),
+			baseConsumable.animation(),
+			baseConsumable.sound(),
+			baseConsumable.hasConsumeParticles(),
+			List.copyOf(effects)
+		);
+
+		DataComponentMap.Builder builder = DataComponentMap.builder().addAll(base);
+		builder.set(DataComponents.FOOD, food);
+		builder.set(DataComponents.CONSUMABLE, consumable);
+		((ItemComponentsAccessor) ((ItemBuiltInRegistryHolderAccessor) item).madokuCraft$getBuiltInRegistryHolder())
+			.madokuCraft$bindComponents(builder.build());
+	}
+
+	private static MobEffect resolveMobEffect(String rawEffect) {
+		Identifier effectId = Identifier.tryParse(
+			JSONAPIManager.normalizeRegistryIdentifierForLookup(rawEffect)
+		);
+		if (effectId == null || !BuiltInRegistries.MOB_EFFECT.containsKey(effectId)) {
+			return null;
+		}
+		return BuiltInRegistries.MOB_EFFECT.getValue(effectId);
 	}
 
 	private static ItemAttributeModifiers applyArmorStats(ItemAttributeModifiers current, CategoriesArmorManager profile) {

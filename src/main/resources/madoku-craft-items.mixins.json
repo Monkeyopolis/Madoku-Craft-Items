@@ -3,6 +3,7 @@
   "package": "madoku.craft.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": [
+	"item.FoodStatusEffectDurationMixin",
     "itemstack.ContainerStackLimitMixin",
     "itemstack.ItemStackCodecMixin",
     "itemstack.ItemStackDurabilityLoreMixin",

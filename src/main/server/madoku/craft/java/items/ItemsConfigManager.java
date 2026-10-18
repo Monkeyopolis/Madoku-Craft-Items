@@ -22,6 +22,7 @@ public final class ItemsConfigManager {
 	public static final String FIELD_ARMOR_CATEGORY = "armor-category";
 	public static final String FIELD_TOOL_CATEGORY = "tool-category";
 	public static final String FIELD_WEAPON_CATEGORY = "weapon-category";
+	public static final String FIELD_FOOD_CATEGORY = "food-category";
 	public static final String FIELD_FUEL_CATEGORY = "fuel-category";
 	public static final String FIELD_OTHER_CATEGORY = "other-category";
 	public static final String FIELD_CATEGORY_ENABLED = "enabled";
@@ -36,8 +37,14 @@ public final class ItemsConfigManager {
 	public static final String CATEGORY_TOOL = "tool";
 	public static final String CATEGORY_WEAPON = "weapon";
 	public static final String CATEGORY_ARMOR = "armor";
+	public static final String CATEGORY_FOOD = "food";
 
 	public static final String FIELD_FUEL_TICKS = "fuel-ticks";
+	public static final String FIELD_NUTRITION = "nutrition";
+	public static final String FIELD_STATUS_EFFECTS = "status-effects";
+	public static final String FIELD_EFFECT = "effect";
+	public static final String FIELD_DURATION = "duration";
+	public static final String FIELD_CHANCE = "chance";
 	public static final String FIELD_DURABILITY = "durability";
 	public static final String FIELD_ATTACK_DAMAGE = "attack-damage";
 	public static final String FIELD_ATTACK_SPEED = "attack-speed";
@@ -67,6 +74,7 @@ public final class ItemsConfigManager {
 			.object(FIELD_ARMOR_CATEGORY, category -> category.put(FIELD_CATEGORY_ENABLED, true))
 			.object(FIELD_TOOL_CATEGORY, category -> category.put(FIELD_CATEGORY_ENABLED, true))
 			.object(FIELD_WEAPON_CATEGORY, category -> category.put(FIELD_CATEGORY_ENABLED, true))
+			.object(FIELD_FOOD_CATEGORY, category -> category.put(FIELD_CATEGORY_ENABLED, true))
 			.object(FIELD_FUEL_CATEGORY, category -> category.put(FIELD_CATEGORY_ENABLED, true))
 			.object(FIELD_OTHER_CATEGORY, category -> category.put(FIELD_CATEGORY_ENABLED, true))
 			.build();
@@ -94,6 +102,40 @@ public final class ItemsConfigManager {
 			}
 			defaults.put(fileKey, buildOtherItemDefaults(itemId, defaultStackForItem(itemId)));
 		}
+		return defaults;
+	}
+
+	public static Map<String, JsonObject> buildDefaultFoodFileDefaults() {
+		Map<String, JsonObject> defaults = new LinkedHashMap<>();
+		String driedKelp = "minecraft:dried_kelp";
+		defaults.put(fileKeyFromItemId(driedKelp), buildFoodItemDefaults(
+			driedKelp,
+			1,
+			defaultStackForItem(driedKelp),
+			new String[] {"speed", "haste", "strength", "regeneration", "resistance", "conduit-power", "health-boost", "dolphins-grace"},
+			15,
+			0.05D
+		));
+
+		String sweetBerries = "minecraft:sweet_berries";
+		defaults.put(fileKeyFromItemId(sweetBerries), buildFoodItemDefaults(
+			sweetBerries,
+			1,
+			defaultStackForItem(sweetBerries),
+			new String[] {"speed"},
+			15,
+			1.0D
+		));
+
+		String glowBerries = "minecraft:glow_berries";
+		defaults.put(fileKeyFromItemId(glowBerries), buildFoodItemDefaults(
+			glowBerries,
+			1,
+			defaultStackForItem(glowBerries),
+			new String[] {"night-vision"},
+			15,
+			1.0D
+		));
 		return defaults;
 	}
 
@@ -147,6 +189,40 @@ public final class ItemsConfigManager {
 
 	public static JsonObject buildOtherItemDefaults(String itemId, String stackValue) {
 		return buildBaseDefaults(itemId, stackValue, CATEGORY_OTHER);
+	}
+
+	public static JsonObject buildFoodItemDefaults(String itemId, int nutrition, String stackValue) {
+		return JSONFormatAPIManager.object()
+			.putAll(buildBaseDefaults(itemId, stackValue, CATEGORY_FOOD))
+			.put(FIELD_NUTRITION, Math.max(0, nutrition))
+			.array(FIELD_STATUS_EFFECTS, ignored -> { })
+			.build();
+	}
+
+	public static JsonObject buildFoodItemDefaults(
+		String itemId,
+		int nutrition,
+		String stackValue,
+		String[] effects,
+		int duration,
+		double chance
+	) {
+		JsonObject root = buildFoodItemDefaults(itemId, nutrition, stackValue);
+		JsonArray statusEffects = root.getAsJsonArray(FIELD_STATUS_EFFECTS);
+		if (effects == null) {
+			return root;
+		}
+		for (String effect : effects) {
+			if (effect == null || effect.isBlank()) {
+				continue;
+			}
+			JsonObject statusEffect = new JsonObject();
+			statusEffect.addProperty(FIELD_EFFECT, effect);
+			statusEffect.addProperty(FIELD_DURATION, Math.max(0, duration));
+			statusEffect.addProperty(FIELD_CHANCE, Math.max(0.0D, Math.min(1.0D, chance)));
+			statusEffects.add(statusEffect);
+		}
+		return root;
 	}
 
 	public static JsonObject buildToolItemDefaults(String itemId) {

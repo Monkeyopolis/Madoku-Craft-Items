@@ -25,6 +25,8 @@ public interface ItemsCategoriesProvider {
 	default boolean isArmorCategoryItem(Item item) { return false; }
 	default boolean isArmorCategoryItem(ItemStack stack) { return false; }
 	default boolean isWeaponCategoryItem(Item item) { return false; }
+	default boolean isFoodCategoryItem(Item item) { return false; }
+	default boolean isFoodCategoryItem(ItemStack stack) { return false; }
 	default boolean isRarityCategoryItem(Item item) { return false; }
 	default boolean isRarityCategoryItem(ItemStack stack) { return false; }
 	default boolean areItemLevelsEnabled() { return false; }

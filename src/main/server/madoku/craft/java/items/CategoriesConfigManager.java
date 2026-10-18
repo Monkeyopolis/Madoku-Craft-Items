@@ -9,6 +9,7 @@ public final class CategoriesConfigManager {
 		ItemsConfigManager.FIELD_ARMOR_CATEGORY,
 		ItemsConfigManager.FIELD_TOOL_CATEGORY,
 		ItemsConfigManager.FIELD_WEAPON_CATEGORY,
+		ItemsConfigManager.FIELD_FOOD_CATEGORY,
 		ItemsConfigManager.FIELD_FUEL_CATEGORY,
 		ItemsConfigManager.FIELD_OTHER_CATEGORY
 	);
@@ -16,6 +17,7 @@ public final class CategoriesConfigManager {
 		ItemsConfigManager.CATEGORY_ARMOR,
 		ItemsConfigManager.CATEGORY_TOOL,
 		ItemsConfigManager.CATEGORY_WEAPON,
+		ItemsConfigManager.CATEGORY_FOOD,
 		ItemsConfigManager.CATEGORY_FUEL,
 		ItemsConfigManager.CATEGORY_OTHER
 	);

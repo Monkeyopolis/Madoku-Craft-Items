@@ -24,6 +24,8 @@ public final class MadokuItemsCategoriesProvider implements ItemsCategoriesProvi
 	@Override public boolean isArmorCategoryItem(Item item) { return ItemsCategoriesManager.isArmorCategoryItem(item); }
 	@Override public boolean isArmorCategoryItem(ItemStack stack) { return ItemsCategoriesManager.isArmorCategoryItem(stack); }
 	@Override public boolean isWeaponCategoryItem(Item item) { return ItemsCategoriesManager.isWeaponCategoryItem(item); }
+	@Override public boolean isFoodCategoryItem(Item item) { return ItemsCategoriesManager.isFoodCategoryItem(item); }
+	@Override public boolean isFoodCategoryItem(ItemStack stack) { return ItemsCategoriesManager.isFoodCategoryItem(stack); }
 	@Override public boolean isRarityCategoryItem(Item item) { return ItemsCategoriesManager.isRarityCategoryItem(item); }
 	@Override public boolean isRarityCategoryItem(ItemStack stack) { return ItemsCategoriesManager.isRarityCategoryItem(stack); }
 	@Override public boolean areItemLevelsEnabled() { return ItemsCategoriesManager.areItemLevelsEnabled(); }
