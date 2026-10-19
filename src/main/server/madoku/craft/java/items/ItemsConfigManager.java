@@ -108,33 +108,316 @@ public final class ItemsConfigManager {
 	public static Map<String, JsonObject> buildDefaultFoodFileDefaults() {
 		Map<String, JsonObject> defaults = new LinkedHashMap<>();
 		String driedKelp = "minecraft:dried_kelp";
-		defaults.put(fileKeyFromItemId(driedKelp), buildFoodItemDefaults(
+		defaults.put(fileKeyFromItemId(driedKelp), buildDefaultFoodItem(
 			driedKelp,
 			1,
 			defaultStackForItem(driedKelp),
-			new String[] {"speed", "haste", "strength", "regeneration", "resistance", "conduit-power", "health-boost", "dolphins-grace"},
-			15,
-			0.05D
+			new DefaultFoodEffect("speed", 15, 0.05D),
+			new DefaultFoodEffect("haste", 15, 0.05D),
+			new DefaultFoodEffect("strength", 15, 0.05D),
+			new DefaultFoodEffect("regeneration", 15, 0.05D),
+			new DefaultFoodEffect("resistance", 15, 0.05D),
+			new DefaultFoodEffect("conduit-power", 15, 0.05D),
+			new DefaultFoodEffect("health-boost", 15, 0.05D),
+			new DefaultFoodEffect("dolphins-grace", 15, 0.05D)
 		));
 
 		String sweetBerries = "minecraft:sweet_berries";
-		defaults.put(fileKeyFromItemId(sweetBerries), buildFoodItemDefaults(
+		defaults.put(fileKeyFromItemId(sweetBerries), buildDefaultFoodItem(
 			sweetBerries,
 			1,
 			defaultStackForItem(sweetBerries),
-			new String[] {"speed"},
-			15,
-			1.0D
+			new DefaultFoodEffect("speed", 15, 0.5D)
 		));
 
 		String glowBerries = "minecraft:glow_berries";
-		defaults.put(fileKeyFromItemId(glowBerries), buildFoodItemDefaults(
+		defaults.put(fileKeyFromItemId(glowBerries), buildDefaultFoodItem(
 			glowBerries,
 			1,
 			defaultStackForItem(glowBerries),
-			new String[] {"night-vision"},
+			new DefaultFoodEffect("night-vision", 15, 0.5D)
+		));
+
+		String beetroot = "minecraft:beetroot";
+		defaults.put(fileKeyFromItemId(beetroot), buildDefaultFoodItem(
+			beetroot,
+			1,
+			defaultStackForItem(beetroot),
+			new DefaultFoodEffect("strength", 15, 0.5D)
+		));
+
+		String beetrootSoup = "minecraft:beetroot_soup";
+		defaults.put(fileKeyFromItemId(beetrootSoup), buildDefaultFoodItem(
+			beetrootSoup,
+			6,
+			defaultStackForItem(beetrootSoup),
+			new DefaultFoodEffect("strength", 30, 1.0D)
+		));
+
+		String bread = "minecraft:bread";
+		defaults.put(fileKeyFromItemId(bread), buildDefaultFoodItem(
+			bread,
+			6,
+			defaultStackForItem(bread)
+		));
+
+		String melonSlice = "minecraft:melon_slice";
+		defaults.put(fileKeyFromItemId(melonSlice), buildDefaultFoodItem(
+			melonSlice,
+			2,
+			defaultStackForItem(melonSlice),
+			new DefaultFoodEffect("regeneration", 15, 0.5D)
+		));
+
+		String mushroomStew = "minecraft:mushroom_stew";
+		defaults.put(fileKeyFromItemId(mushroomStew), buildDefaultFoodItem(
+			mushroomStew,
+			4,
+			defaultStackForItem(mushroomStew),
+			new DefaultFoodEffect("haste", 30, 1.0D)
+		));
+
+		String potato = "minecraft:potato";
+		defaults.put(fileKeyFromItemId(potato), buildDefaultFoodItem(
+			potato,
+			2,
+			defaultStackForItem(potato)
+		));
+
+		String chicken = "minecraft:chicken";
+		defaults.put(fileKeyFromItemId(chicken), buildDefaultFoodItem(
+			chicken,
+			4,
+			defaultStackForItem(chicken)
+		));
+
+		String cod = "minecraft:cod";
+		defaults.put(fileKeyFromItemId(cod), buildDefaultFoodItem(
+			cod,
+			3,
+			defaultStackForItem(cod)
+		));
+
+		String cookedBeef = "minecraft:cooked_beef";
+		defaults.put(fileKeyFromItemId(cookedBeef), buildDefaultFoodItem(
+			cookedBeef,
+			7,
+			defaultStackForItem(cookedBeef)
+		));
+
+		String cookedChicken = "minecraft:cooked_chicken";
+		defaults.put(fileKeyFromItemId(cookedChicken), buildDefaultFoodItem(
+			cookedChicken,
+			7,
+			defaultStackForItem(cookedChicken)
+		));
+
+		String cookedCod = "minecraft:cooked_cod";
+		defaults.put(fileKeyFromItemId(cookedCod), buildDefaultFoodItem(
+			cookedCod,
+			6,
+			defaultStackForItem(cookedCod)
+		));
+
+		String cookedMutton = "minecraft:cooked_mutton";
+		defaults.put(fileKeyFromItemId(cookedMutton), buildDefaultFoodItem(
+			cookedMutton,
+			7,
+			defaultStackForItem(cookedMutton)
+		));
+
+		String cookedPorkchop = "minecraft:cooked_porkchop";
+		defaults.put(fileKeyFromItemId(cookedPorkchop), buildDefaultFoodItem(
+			cookedPorkchop,
+			7,
+			defaultStackForItem(cookedPorkchop),
+			new DefaultFoodEffect("health-boost", 30, 1.0D)
+		));
+
+		String cookedPotato = "minecraft:cooked_potato";
+		defaults.put(fileKeyFromItemId(cookedPotato), buildDefaultFoodItem(
+			cookedPotato,
+			5,
+			defaultStackForItem(cookedPotato)
+		));
+
+		String cookedRabbit = "minecraft:cooked_rabbit";
+		defaults.put(fileKeyFromItemId(cookedRabbit), buildDefaultFoodItem(
+			cookedRabbit,
+			7,
+			defaultStackForItem(cookedRabbit)
+		));
+
+		String cookedSalmon = "minecraft:cooked_salmon";
+		defaults.put(fileKeyFromItemId(cookedSalmon), buildDefaultFoodItem(
+			cookedSalmon,
+			6,
+			defaultStackForItem(cookedSalmon)
+		));
+
+		String mutton = "minecraft:mutton";
+		defaults.put(fileKeyFromItemId(mutton), buildDefaultFoodItem(
+			mutton,
+			4,
+			defaultStackForItem(mutton)
+		));
+
+		String pufferfish = "minecraft:pufferfish";
+		defaults.put(fileKeyFromItemId(pufferfish), buildDefaultFoodItem(
+			pufferfish,
+			4,
+			defaultStackForItem(pufferfish),
+			new DefaultFoodEffect("nausea", 20, 1.0D),
+			new DefaultFoodEffect("weakness", 20, 0.7D),
+			new DefaultFoodEffect("poison", 20, 0.4D)
+		));
+
+		String rottenFlesh = "minecraft:rotten_flesh";
+		defaults.put(fileKeyFromItemId(rottenFlesh), buildDefaultFoodItem(
+			rottenFlesh,
+			2,
+			defaultStackForItem(rottenFlesh),
+			new DefaultFoodEffect("nausea", 10, 0.8D),
+			new DefaultFoodEffect("weakness", 10, 0.5D),
+			new DefaultFoodEffect("poison", 10, 0.2D)
+		));
+
+		String spiderEye = "minecraft:spider_eye";
+		defaults.put(fileKeyFromItemId(spiderEye), buildDefaultFoodItem(
+			spiderEye,
+			3,
+			defaultStackForItem(spiderEye),
+			new DefaultFoodEffect("nausea", 15, 0.9D),
+			new DefaultFoodEffect("weakness", 15, 0.6D),
+			new DefaultFoodEffect("poison", 15, 0.3D)
+		));
+
+		String tropicalFish = "minecraft:tropical_fish";
+		defaults.put(fileKeyFromItemId(tropicalFish), buildDefaultFoodItem(
+			tropicalFish,
+			3,
+			defaultStackForItem(tropicalFish),
+			new DefaultFoodEffect("conduit-power", 15, 0.5D)
+		));
+
+		String apple = "minecraft:apple";
+		defaults.put(fileKeyFromItemId(apple), buildDefaultFoodItem(
+			apple,
+			3,
+			defaultStackForItem(apple)
+		));
+
+		String beef = "minecraft:beef";
+		defaults.put(fileKeyFromItemId(beef), buildDefaultFoodItem(
+			beef,
+			4,
+			defaultStackForItem(beef)
+		));
+
+		String carrot = "minecraft:carrot";
+		defaults.put(fileKeyFromItemId(carrot), buildDefaultFoodItem(
+			carrot,
+			2,
+			defaultStackForItem(carrot)
+		));
+
+		String chorusFruit = "minecraft:chorus_fruit";
+		defaults.put(fileKeyFromItemId(chorusFruit), buildDefaultFoodItem(
+			chorusFruit,
+			4,
+			defaultStackForItem(chorusFruit)
+		));
+
+		String cookie = "minecraft:cookie";
+		defaults.put(fileKeyFromItemId(cookie), buildDefaultFoodItem(
+			cookie,
+			4,
+			defaultStackForItem(cookie)
+		));
+
+		String enchantedGoldenApple = "minecraft:enchanted_golden_apple";
+		defaults.put(fileKeyFromItemId(enchantedGoldenApple), buildDefaultFoodItem(
+			enchantedGoldenApple,
+			7,
+			defaultStackForItem(enchantedGoldenApple),
+			new DefaultFoodEffect("speed", 120, 1.0D),
+			new DefaultFoodEffect("haste", 120, 1.0D),
+			new DefaultFoodEffect("strength", 120, 1.0D),
+			new DefaultFoodEffect("regeneration", 120, 1.0D),
+			new DefaultFoodEffect("resistance", 120, 1.0D),
+			new DefaultFoodEffect("health-boost", 120, 1.0D)
+		));
+
+		String goldenApple = "minecraft:golden_apple";
+		defaults.put(fileKeyFromItemId(goldenApple), buildDefaultFoodItem(
+			goldenApple,
+			5,
+			defaultStackForItem(goldenApple),
+			new DefaultFoodEffect("speed", 30, 1.0D),
+			new DefaultFoodEffect("haste", 30, 1.0D),
+			new DefaultFoodEffect("regeneration", 30, 1.0D)
+		));
+
+		String goldenCarrot = "minecraft:golden_carrot";
+		defaults.put(fileKeyFromItemId(goldenCarrot), buildDefaultFoodItem(
+			goldenCarrot,
+			6,
+			defaultStackForItem(goldenCarrot)
+		));
+
+		String honeyBottle = "minecraft:honey_bottle";
+		defaults.put(fileKeyFromItemId(honeyBottle), buildDefaultFoodItem(
+			honeyBottle,
+			5,
+			defaultStackForItem(honeyBottle),
+			new DefaultFoodEffect("absorption", 120, 1.0D)
+		));
+
+		String poisonousPotato = "minecraft:poisonous_potato";
+		defaults.put(fileKeyFromItemId(poisonousPotato), buildDefaultFoodItem(
+			poisonousPotato,
+			5,
+			defaultStackForItem(poisonousPotato),
+			new DefaultFoodEffect("nausea", 30, 0.2D),
+			new DefaultFoodEffect("weakness", 30, 0.5D),
+			new DefaultFoodEffect("poison", 30, 0.8D)
+		));
+
+		String porkchop = "minecraft:porkchop";
+		defaults.put(fileKeyFromItemId(porkchop), buildDefaultFoodItem(
+			porkchop,
+			4,
+			defaultStackForItem(porkchop),
+			new DefaultFoodEffect("health-boost", 15, 0.5D)
+		));
+
+		String rabbit = "minecraft:rabbit";
+		defaults.put(fileKeyFromItemId(rabbit), buildDefaultFoodItem(
+			rabbit,
+			4,
+			defaultStackForItem(rabbit)
+		));
+
+		String pumpkinPie = "minecraft:pumpkin_pie";
+		defaults.put(fileKeyFromItemId(pumpkinPie), buildDefaultFoodItem(
+			pumpkinPie,
+			7,
+			defaultStackForItem(pumpkinPie),
+			new DefaultFoodEffect("resistance", 30, 1.0D)
+		));
+
+		String rabbitStew = "minecraft:rabbit_stew";
+		defaults.put(fileKeyFromItemId(rabbitStew), buildDefaultFoodItem(
+			rabbitStew,
 			15,
-			1.0D
+			defaultStackForItem(rabbitStew)
+		));
+
+		String salmon = "minecraft:salmon";
+		defaults.put(fileKeyFromItemId(salmon), buildDefaultFoodItem(
+			salmon,
+			3,
+			defaultStackForItem(salmon)
 		));
 		return defaults;
 	}
@@ -197,6 +480,29 @@ public final class ItemsConfigManager {
 			.put(FIELD_NUTRITION, Math.max(0, nutrition))
 			.array(FIELD_STATUS_EFFECTS, ignored -> { })
 			.build();
+	}
+
+	private static JsonObject buildDefaultFoodItem(
+		String itemId,
+		int nutrition,
+		String stackValue,
+		DefaultFoodEffect... effects
+	) {
+		JsonObject root = buildFoodItemDefaults(itemId, nutrition, stackValue);
+		JsonArray statusEffects = root.getAsJsonArray(FIELD_STATUS_EFFECTS);
+		if (effects != null) {
+			for (DefaultFoodEffect effect : effects) {
+				if (effect == null || effect.effect() == null || effect.effect().isBlank()) {
+					continue;
+				}
+				JsonObject statusEffect = new JsonObject();
+				statusEffect.addProperty(FIELD_EFFECT, effect.effect());
+				statusEffect.addProperty(FIELD_DURATION, Math.max(0, effect.duration()));
+				statusEffect.addProperty(FIELD_CHANCE, Math.max(0.0D, Math.min(1.0D, effect.chance())));
+				statusEffects.add(statusEffect);
+			}
+		}
+		return root;
 	}
 
 	public static JsonObject buildFoodItemDefaults(
@@ -645,6 +951,8 @@ public final class ItemsConfigManager {
 		defaults.put("minecraft:powder_snow_bucket", true);
 		return defaults;
 	}
+
+	private record DefaultFoodEffect(String effect, int duration, double chance) { }
 
 }
 

@@ -41,3 +41,8 @@ The type of modifications an item can receive is based on their category.
 - You can open up the main menu by pressing Tab.
 - The level system only applies to items in the armor, tool, and weapon categories.
 - To level up an item, it requires materials, essence and experience bottles.
+
+**Food Items:**
+
+- Certain food items now grant status effects.
+- You can add, remove and modify food items in the config files.

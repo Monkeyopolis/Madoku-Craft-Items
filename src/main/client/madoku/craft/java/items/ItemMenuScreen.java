@@ -1,6 +1,7 @@
 package madoku.craft.java.items;
 
 import madoku.craft.java.core.menu.MenuScreen;
+import madoku.craft.java.core.menu.MenuSoundManager;
 import madoku.craft.java.items.ItemPayloadAPIManager.UpgradeItemPayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
@@ -113,12 +114,14 @@ public final class ItemMenuScreen extends AbstractContainerScreen<ItemMenu> {
 		int mouseX = (int) event.x();
 		int mouseY = (int) event.y();
 		if (contains(leftPos + EXIT_X, topPos + EXIT_Y, EXIT_SIZE, EXIT_SIZE, mouseX, mouseY)) {
+			MenuSoundManager.playButtonClick();
 			super.onClose();
 			Minecraft.getInstance().setScreenAndShow(new MenuScreen());
 			return true;
 		}
 		if (contains(leftPos + UPGRADE_BUTTON_X, topPos + UPGRADE_BUTTON_Y, UPGRADE_BUTTON_WIDTH, UPGRADE_BUTTON_HEIGHT, mouseX, mouseY)) {
 			if (getMenu().getUpgradeRequirements().canUpgrade()) {
+				MenuSoundManager.playButtonClick();
 				ClientPlayNetworking.send(new UpgradeItemPayload());
 			}
 			return true;

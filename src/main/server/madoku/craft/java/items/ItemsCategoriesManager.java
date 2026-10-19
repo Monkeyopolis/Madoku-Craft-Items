@@ -2256,7 +2256,11 @@ public final class ItemsCategoriesManager {
 
 		List<ConsumeEffect> effects = new ArrayList<>();
 		if (currentConsumable != null) {
-			effects.addAll(currentConsumable.onConsumeEffects());
+			for (ConsumeEffect currentEffect : currentConsumable.onConsumeEffects()) {
+				if (!(currentEffect instanceof ApplyStatusEffectsConsumeEffect)) {
+					effects.add(currentEffect);
+				}
+			}
 		}
 		for (CategoriesFoodManager.StatusEffect configuredEffect : profile.statusEffects()) {
 			if (configuredEffect == null) {
