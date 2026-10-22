@@ -11,6 +11,7 @@ public final class MadokuItemsManager {
 
 	public static void initialize() {
 		ItemsAPIManager.registerProvider(new MadokuItemsProvider());
+		CustomItemsManager.initialize();
 		ItemsConfigManager.initialize();
 		ItemsCategoriesManager.initialize();
 		ItemMenuManager.initialize();

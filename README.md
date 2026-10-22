@@ -25,7 +25,7 @@ The type of modifications an item can receive is based on their category.
 **Stacking Limit:**
 
 - Item Stacking limit is adjustable.
-- By default, stacking limit was increased to 512 from 64 items per ptack.
+- By default, stacking limit was increased to 256 from 64 items per stack.
 - The stacking limit can be increased up to 999 million items per stack in the config files.
 
 **Item Rarity:**

@@ -32,8 +32,6 @@ public final class ItemMenu extends AbstractContainerMenu {
 	public static final int EXPERIENCE_REQUIREMENT_SLOT_X = 80;
 	public static final int ESSENCE_REQUIREMENT_SLOT_X = 106;
 	public static final int REQUIREMENT_SLOT_Y = 74;
-	private static final int EXPERIENCE_MATERIAL_STEP = 4;
-
 	private final SimpleContainer upgradeInventory = new SimpleContainer(UPGRADE_SLOT_COUNT);
 
 	public ItemMenu(int containerId, Inventory playerInventory) {
@@ -180,7 +178,7 @@ public final class ItemMenu extends AbstractContainerMenu {
 				countItems(Items.COBBLESTONE), stoneCobblestoneCost(target, level)));
 		} else if (usesChainmailIronNuggetRequirement(target)) {
 			ingredients.add(new IngredientRequirement(Items.IRON_NUGGET, null, false,
-				countItems(Items.IRON_NUGGET), stoneCobblestoneCost(target, level)));
+				countItems(Items.IRON_NUGGET), chainmailCost(target, level)));
 		} else if (usesLeatherRequirement(target)) {
 			ingredients.add(new IngredientRequirement(Items.LEATHER, null, false,
 				countItems(Items.LEATHER), leatherCost(target, level)));
@@ -295,47 +293,52 @@ public final class ItemMenu extends AbstractContainerMenu {
 	private static int experienceBottleCost(ItemStack target, int level) {
 		int startingLevel = ItemsCategoriesAPIManager.getItemStartingLevel();
 		int levelStep = Math.max(1, level - startingLevel + 1);
-		return rarityExperienceStep(target) * levelStep + materialIndex(target) * EXPERIENCE_MATERIAL_STEP;
+		return rarityExperienceStep(target) * levelStep + materialOffset(target);
 	}
 
 	private static int woodLogCost(ItemStack target, int level) {
-		int startingLevel = ItemsCategoriesAPIManager.getItemStartingLevel();
-		int levelStep = Math.max(1, level - startingLevel + 1);
-		return 64 * (levelStep + rarityIndex(target));
+		return materialCost(target, level, 32, 24);
 	}
 
 	private static int stoneCobblestoneCost(ItemStack target, int level) {
-		return materialCost(target, level, 32);
+		return materialCost(target, level, 24, 24);
+	}
+
+	private static int chainmailCost(ItemStack target, int level) {
+		return materialCost(target, level, 18, 18);
 	}
 
 	private static int leatherCost(ItemStack target, int level) {
-		return materialCost(target, level, 24);
+		return materialCost(target, level, 32, 24);
 	}
 
 	private static int copperIngotCost(ItemStack target, int level) {
-		return materialCost(target, level, 24);
+		return materialCost(target, level, 16, 14);
 	}
 
 	private static int ironIngotCost(ItemStack target, int level) {
-		return materialCost(target, level, 16);
+		return materialCost(target, level, 10, 10);
 	}
 
 	private static int goldIngotCost(ItemStack target, int level) {
-		return materialCost(target, level, 8);
+		return materialCost(target, level, 6, 6);
 	}
 
 	private static int diamondCost(ItemStack target, int level) {
-		return materialCost(target, level, 4);
+		return materialCost(target, level, 3, 3);
 	}
 
 	private static int netheriteScrapCost(ItemStack target, int level) {
-		return materialCost(target, level, 2);
+		return materialCost(target, level, 1, 1);
 	}
 
-	private static int materialCost(ItemStack target, int level, int baseStep) {
+	private static int materialCost(ItemStack target, int level, int itemMultiplier, int armorMultiplier) {
 		int startingLevel = ItemsCategoriesAPIManager.getItemStartingLevel();
 		int levelStep = Math.max(1, level - startingLevel + 1);
-		return baseStep * (levelStep + rarityIndex(target));
+		int materialMultiplier = ItemsCategoriesAPIManager.isArmorCategoryItem(target)
+			? armorMultiplier
+			: itemMultiplier;
+		return materialMultiplier * (levelStep + rarityIndex(target));
 	}
 
 	private static int scaledCost(int baseCost, int level) {
@@ -345,14 +348,18 @@ public final class ItemMenu extends AbstractContainerMenu {
 	}
 
 	private static int rarityExperienceStep(ItemStack target) {
+		return rarityExperienceMultiplier(target);
+	}
+
+	private static int rarityExperienceMultiplier(ItemStack target) {
 		RarityAPIManager.Tier rarity = RarityAPIManager.detectAppliedRarity(target);
 		if (rarity == null) rarity = RarityAPIManager.Tier.COMMON;
 		return switch (rarity) {
-			case COMMON -> 2;
-			case RARE -> 4;
-			case EPIC -> 6;
-			case LEGENDARY -> 8;
-			case MYTHIC -> 10;
+			case COMMON -> 1;
+			case RARE -> 2;
+			case EPIC -> 3;
+			case LEGENDARY -> 4;
+			case MYTHIC -> 5;
 		};
 	}
 
@@ -435,15 +442,15 @@ public final class ItemMenu extends AbstractContainerMenu {
 			|| path.contains("_netherite_");
 	}
 
-	private static int materialIndex(ItemStack target) {
+	private static int materialOffset(ItemStack target) {
 		if (target == null || target.isEmpty()) return 0;
 		String path = BuiltInRegistries.ITEM.getKey(target.getItem()).getPath();
-		if (path.contains("netherite")) return 6;
-		if (path.contains("diamond")) return 5;
-		if (path.contains("golden") || path.contains("gold")) return 4;
-		if (path.contains("iron")) return 3;
-		if (path.contains("copper")) return 2;
-		if (path.contains("stone")) return 1;
+		if (path.contains("netherite")) return 12;
+		if (path.contains("diamond")) return 10;
+		if (path.contains("golden") || path.contains("gold")) return 8;
+		if (path.contains("iron")) return 6;
+		if (path.contains("copper")) return 4;
+		if (path.contains("chainmail") || path.contains("stone")) return 2;
 		return 0;
 	}
 

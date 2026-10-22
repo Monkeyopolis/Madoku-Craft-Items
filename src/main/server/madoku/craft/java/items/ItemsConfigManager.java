@@ -130,6 +130,14 @@ public final class ItemsConfigManager {
 			new DefaultFoodEffect("speed", 15, 0.5D)
 		));
 
+		String sweetBerryCookie = "madoku-craft:sweet-berry-cookie";
+		defaults.put(fileKeyFromItemId(sweetBerryCookie), buildDefaultFoodItem(
+			sweetBerryCookie,
+			5,
+			defaultStackForItem(sweetBerryCookie),
+			new DefaultFoodEffect("speed", 30, 1.0D)
+		));
+
 		String glowBerries = "minecraft:glow_berries";
 		defaults.put(fileKeyFromItemId(glowBerries), buildDefaultFoodItem(
 			glowBerries,
@@ -298,6 +306,14 @@ public final class ItemsConfigManager {
 			3,
 			defaultStackForItem(tropicalFish),
 			new DefaultFoodEffect("conduit-power", 15, 0.5D)
+		));
+
+		String cookedTropicalFish = "madoku-craft:cooked-tropical-fish";
+		defaults.put(fileKeyFromItemId(cookedTropicalFish), buildDefaultFoodItem(
+			cookedTropicalFish,
+			7,
+			defaultStackForItem(cookedTropicalFish),
+			new DefaultFoodEffect("conduit-power", 30, 1.0D)
 		));
 
 		String apple = "minecraft:apple";
