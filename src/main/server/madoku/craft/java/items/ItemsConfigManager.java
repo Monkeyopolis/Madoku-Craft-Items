@@ -133,7 +133,7 @@ public final class ItemsConfigManager {
 		String sweetBerryCookie = "madoku-craft:sweet-berry-cookie";
 		defaults.put(fileKeyFromItemId(sweetBerryCookie), buildDefaultFoodItem(
 			sweetBerryCookie,
-			5,
+			4,
 			defaultStackForItem(sweetBerryCookie),
 			new DefaultFoodEffect("speed", 30, 1.0D)
 		));
@@ -347,7 +347,7 @@ public final class ItemsConfigManager {
 		String cookie = "minecraft:cookie";
 		defaults.put(fileKeyFromItemId(cookie), buildDefaultFoodItem(
 			cookie,
-			4,
+			3,
 			defaultStackForItem(cookie)
 		));
 
