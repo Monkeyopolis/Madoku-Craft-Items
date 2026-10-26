@@ -138,6 +138,14 @@ public final class ItemsConfigManager {
 			new DefaultFoodEffect("speed", 30, 1.0D)
 		));
 
+		String bowlOfMelon = "madoku-craft:bowl-of-melon";
+		defaults.put(fileKeyFromItemId(bowlOfMelon), buildDefaultFoodItem(
+			bowlOfMelon,
+			6,
+			defaultStackForItem(bowlOfMelon),
+			new DefaultFoodEffect("regeneration", 30, 1.0D)
+		));
+
 		String glowBerries = "minecraft:glow_berries";
 		defaults.put(fileKeyFromItemId(glowBerries), buildDefaultFoodItem(
 			glowBerries,
