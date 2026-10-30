@@ -154,6 +154,14 @@ public final class ItemsConfigManager {
 			new DefaultFoodEffect("night-vision", 15, 0.5D)
 		));
 
+		String glowberryPie = "madoku-craft:glowberry-pie";
+		defaults.put(fileKeyFromItemId(glowberryPie), buildDefaultFoodItem(
+			glowberryPie,
+			5,
+			defaultStackForItem(glowberryPie),
+			new DefaultFoodEffect("night-vision", 30, 1.0D)
+		));
+
 		String beetroot = "minecraft:beetroot";
 		defaults.put(fileKeyFromItemId(beetroot), buildDefaultFoodItem(
 			beetroot,
@@ -843,19 +851,19 @@ public final class ItemsConfigManager {
 
 			defaults.put(
 				prefix + "axe",
-				buildAxeItemDefaults(prefix + "axe", itemDurability, 8.0 + attackStep, 0.8 + (index * 0.025), miningSpeed, itemLevel, STACK_SINGLE)
+				buildAxeItemDefaults(prefix + "axe", itemDurability, 8.0 + attackStep, 0.8 + (index * 0.03), miningSpeed, itemLevel, STACK_SINGLE)
 			);
 			defaults.put(
 				prefix + "pickaxe",
-				buildToolItemDefaults(prefix + "pickaxe", itemDurability, pickAndShovelDamage[index], 1.2 + (index * 0.05), miningSpeed, itemLevel, STACK_SINGLE)
+				buildToolItemDefaults(prefix + "pickaxe", itemDurability, pickAndShovelDamage[index], 1.2 + (index * 0.06), miningSpeed, itemLevel, STACK_SINGLE)
 			);
 			defaults.put(
 				prefix + "shovel",
-				buildToolItemDefaults(prefix + "shovel", itemDurability, pickAndShovelDamage[index], 1.2 + (index * 0.05), miningSpeed, itemLevel, STACK_SINGLE)
+				buildToolItemDefaults(prefix + "shovel", itemDurability, pickAndShovelDamage[index], 1.2 + (index * 0.06), miningSpeed, itemLevel, STACK_SINGLE)
 			);
 			defaults.put(
 				prefix + "hoe",
-				buildToolItemDefaults(prefix + "hoe", itemDurability, pickAndShovelDamage[index], 1.2 + (index * 0.05), miningSpeed, itemLevel, STACK_SINGLE)
+				buildToolItemDefaults(prefix + "hoe", itemDurability, pickAndShovelDamage[index], 1.2 + (index * 0.06), miningSpeed, itemLevel, STACK_SINGLE)
 			);
 		}
 
@@ -904,7 +912,7 @@ public final class ItemsConfigManager {
 				itemId,
 				durability[index],
 				6.0 + (index * 0.75),
-				1.6 + (index * 0.075),
+				1.6 + (index * 0.09),
 				TOOL_DOUBLE_UNSET,
 				materialLevel[index],
 				STACK_SINGLE
@@ -928,7 +936,7 @@ public final class ItemsConfigManager {
 					itemId,
 					durability[index],
 					4.0 + (index * 0.5),
-					1.2 + (index * 0.05),
+					1.2 + (index * 0.06),
 					materialLevel[index],
 					1.0d,
 					4.5d,

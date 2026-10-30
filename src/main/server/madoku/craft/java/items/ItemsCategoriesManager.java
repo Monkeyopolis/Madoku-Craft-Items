@@ -2003,7 +2003,7 @@ public final class ItemsCategoriesManager {
 				changed = true;
 			} else if (isMainHandAddValue(entry, modifier) && modifier.id().equals(Item.BASE_ATTACK_SPEED_ID)
 				&& isAttribute(entry, Attributes.ATTACK_SPEED)) {
-				double value = roundIncrement((4.0D + modifier.amount()) * speedMultiplier, 0.025D);
+				double value = roundIncrement((4.0D + modifier.amount()) * speedMultiplier, 0.1D);
 				updated = new AttributeModifier(modifier.id(), value - 4.0D, modifier.operation());
 				changed = true;
 			}

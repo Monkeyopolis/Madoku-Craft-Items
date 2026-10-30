@@ -25,6 +25,10 @@ public final class CustomItemsManager {
 		"madoku-craft",
 		"bowl-of-melon"
 	);
+	private static final Identifier GLOWBERRY_PIE_ID = Identifier.fromNamespaceAndPath(
+		"madoku-craft",
+		"glowberry-pie"
+	);
 
 	public static final Item SWEET_BERRY_COOKIE = register(SWEET_BERRY_COOKIE_ID);
 	public static final Item COOKED_TROPICAL_FISH = register(COOKED_TROPICAL_FISH_ID);
@@ -34,6 +38,7 @@ public final class CustomItemsManager {
 			.food(new FoodProperties(6, 0.0F, false))
 			.usingConvertsTo(Items.BOWL)
 	);
+	public static final Item GLOWBERRY_PIE = register(GLOWBERRY_PIE_ID);
 	private static boolean initialized;
 
 	private CustomItemsManager() { }
@@ -45,6 +50,7 @@ public final class CustomItemsManager {
 			output.accept(SWEET_BERRY_COOKIE);
 			output.accept(COOKED_TROPICAL_FISH);
 			output.accept(BOWL_OF_MELON);
+			output.accept(GLOWBERRY_PIE);
 		});
 	}
 
